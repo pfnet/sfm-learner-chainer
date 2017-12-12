@@ -1,3 +1,4 @@
+# TODO 未実装 3D spatial transfomer grid. cudnn高速化したかったらかいたほうがいいかも？
 import numpy
 
 import chainer
@@ -5,6 +6,7 @@ from chainer import cuda
 from chainer import function
 from chainer.utils import argument
 from chainer.utils import type_check
+
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
