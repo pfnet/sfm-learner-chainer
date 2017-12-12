@@ -21,7 +21,7 @@ def transform(imgs, depthes, poses, K):
     xp = cuda.get_array_module(imgs.data)
     N, _, H, W = imgs.shape
     if H != depthes.shape[2] or W != depthes.shape[3]:
-        raise Exception("Height and Width of images and depthes should be the same each other")
+        raise ValueError("Height and Width of images and depthes should be the same each other")
 
     p_t = utils.generate_2dmeshgrid(H, W, xp)  # Generate target coordinate
     Kinvp = F.matmul(F.batch_inv(K), p_t.reshape(3, H * W)).reshape(N, 3, H, W)  # TODO: dimemsion might be mismatched
