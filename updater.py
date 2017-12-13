@@ -33,8 +33,8 @@ class Updater(StandardUpdater):
         K = np.zeros((batchsize, 3, 3), np.float32)
         for i in range(batchsize):
             imgs_target[i] = batch[i][0]
-            for j in range(n_sources):
-                imgs_source_list[i][j] = batch[i][1][j]
+            for i in range(n_sources):
+                imgs_source_list[i][i] = batch[i][1][i]
             K[i] = batch[i][2]
         imgs_target = Variable(xp.asarray(imgs_target))
         imgs_sources = [Variable(xp.asarray(imgs_source_list[i]) for i in range(n_sources))]
@@ -49,28 +49,28 @@ class Updater(StandardUpdater):
         smooth_loss = Variable(0)
         for s in range(len(disps)):
             # Resize by bi-linear intp. (area intp. in the original inmplemenation)
-            curr_imgs_target = F.resize_images(imgs_target, [H // (2 ** s), W // (2 ** s)])
-            curr_imgs_sources = [F.resize_images(imgs_sources[i], [H // (2 ** s), W // (2 ** s)])
+            curr_imgs_target = F.resize_images(imgs_target, (H // (2 ** s), W // (2 ** s)))
+            curr_imgs_sources = [F.resize_images(imgs_sources[i], (H // (2 ** s), W // (2 ** s)))
                                  for i in range(n_sources)]
 
             if self.coeff_smooth_reg > 0:
                 smooth_loss += self.coeff_smooth_reg / (2 ** s) * \
                                self.compute_smooth_loss(disps[s])
 
-            for j in range(n_sources):
+            for i in range(n_sources):
                 # Inverse warp the source image to the target image frame
                 curr_proj_image = transform(
-                    [curr_imgs_sources[i][:, :, :, 3 * j:3 * (j + 1)] for i in range(n_sources)],
+                    curr_imgs_sources[i],
                     F.squeeze(depthes[s], axis=1),
-                    poses[:, j, :],
+                    poses[:, i, :],
                     K[:, s, :, :])  # Why K has dimension for scale?
                 curr_proj_error = F.absolute(curr_proj_image - curr_imgs_target)
                 # Cross-entropy loss as regularization for the
                 # explainability prediction
                 if self.coeff_exp_reg > 0:
                     curr_exp_logits = F.slice(mask_logits[s],
-                                              [0, 0, 0, j * 2],
-                                              [-1, -1, -1, 2])
+                                              [0, i * 2, 0, 0],
+                                              [-1, 2, -1, -1])
                     exp_loss += self.coeff_exp_reg * \
                                 self.compute_exp_reg_loss(curr_exp_logits, xp)
                     curr_exp = F.softmax(curr_exp_logits)
