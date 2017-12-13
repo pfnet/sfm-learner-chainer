@@ -44,14 +44,13 @@ class Updater(StandardUpdater):
         depthes = [1. / d for d in disps]
         poses, mask_logits = self.pose(imgs_target, imgs_sources)
 
-        # TODO chainerize
         pixel_loss = Variable(0)
         exp_loss = Variable(0)
         smooth_loss = Variable(0)
         for s in range(len(disps)):
-            # What's area scaling?
-            curr_imgs_target = F.resize_area(imgs_target, [H // (2 ** s), W // (2 ** s)])
-            curr_imgs_sources = [F.resize_area(imgs_sources[i], [H // (2 ** s), W // (2 ** s)])
+            # Resize by bi-linear intp. (area intp. in the original inmplemenation)
+            curr_imgs_target = F.resize_images(imgs_target, [H // (2 ** s), W // (2 ** s)])
+            curr_imgs_sources = [F.resize_images(imgs_sources[i], [H // (2 ** s), W // (2 ** s)])
                                  for i in range(n_sources)]
 
             if self.coeff_smooth_reg > 0:
