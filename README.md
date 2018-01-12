@@ -26,3 +26,7 @@ For [KiTTI](http://www.cvlibs.net/datasets/kitti/raw_data.php), first download t
 ```bash
 python data/prepare_train_data.py /path/to/KITTI_raw --dataset-format kitti --static-frames ./data/static_frames.txt  --dump-root /path/to/KITTI_formatted --height 128 --width 416 --num-threads 8
 ```
+
+## IDEA
+- Explanation Maskを正確に学習できると、その結果をsegmentationに応用できそう
+- 同じく、Edge Detection, depth推定も精度が向上しそう
