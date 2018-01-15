@@ -1,14 +1,5 @@
-import chainer
-from chainer.training import StandardUpdater
-import numpy as np
-from chainer import Variable
-from chainer import functions as F
-from models.transform import transform
-
 #/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-from __future__ import division
 
 import functools
 import numpy as np
@@ -25,6 +16,8 @@ except:
 import chainer
 import chainer.functions as F
 import chainer.links as L
+from chainer import Variable
+from models.transform import transform
 from models.pose_net import PoseNet
 from models.disp_net import DispNet
 
@@ -71,32 +64,37 @@ class SFMLearner(chainer.Chain):
            Return:
                loss (Variable).
         """
-        batchsize, _, H, W = tgt_img.shape
+        print(tgt_img.shape, src_imgs.shape, intrinsics.shape, inv_intrinsics.shape)
+        batchsize, n_sources, _, H, W = src_imgs.shape # tgt_img.shape
+        stacked_src_imgs = self.xp.reshape(src_imgs, (batchsize, -1, H, W))
         pred_disps = self.disp_net(tgt_img)
         pred_depthes = [1 / d for d in pred_disps]
-        pred_pose, pred_mask = self.pose(tgt_img, src_imgs)
+        pred_poses, pred_maskes = self.pose_net(tgt_img, stacked_src_imgs)
         smooth_loss, exp_loss, pixel_loss = 0, 0, 0
-        for d in range(len(pred_depthes)):
-            curr_img_size = (H // (2 ** d), W // (2 ** d))
+        n_scales = len(pred_depthes)
+        for ns in range(n_scales):
+            curr_img_size = (H // (2 ** ns), W // (2 ** ns))
             curr_tgt_img = F.resize_images(tgt_img, curr_img_size)
-            curr_src_imgs = F.resize_images(src_imgs, curr_img_size)
+            curr_src_imgs = F.resize_images(stacked_src_imgs, curr_img_size)
 
             if self.smooth_reg:
-                smooth_loss += self.smooth_loss / (2 ** d) * \
-                                   self.compute_smooth_loss(pred_disps[d])
+                smooth_loss += self.smooth_loss / (2 ** ns) * \
+                                   self.compute_smooth_loss(pred_disps[ns])
 
             for i in range(n_sources):
                 # Inverse warp the source image to the target image frame
+                i_channel = 3 * i
+                print("#######################")
                 curr_proj_image = transform(
-                    curr_src_imgs[i],
-                    F.squeeze(pred_depthes[d], axis=1),
-                    poses[:, i, :],
-                    K[:, d, :, :])  # Why K has dimension for scale?
+                    curr_src_imgs[:, i_channel : (i_channel + 3)],
+                    pred_depthes[ns], #F.squeeze(pred_depthes[ns], axis=1),
+                    pred_poses[i],
+                    intrinsics)
                 curr_proj_error = F.absolute(curr_proj_image - curr_tgt_img)
                 # Cross-entropy loss as regularization for the
                 # explainability prediction
                 if self.exp_reg > 0:
-                    curr_exp_logits = F.slice(mask_logits[d],
+                    curr_exp_logits = F.slice(pred_maskes[ns],
                                               [0, i * 2, 0, 0],
                                               [-1, 2, -1, -1])
                     exp_loss += self.exp_reg * \
@@ -175,29 +173,3 @@ class SFMLearner(chainer.Chain):
             # print(sort_index[result_index])
         return pred_reg[result_index], pred_prob[result_index]
 
-
-    def predict(self, x, counter, indexes, gt_prob, gt_reg, batch,
-                n_no_empty, config=None):
-        with chainer.using_config('train', False), \
-                 chainer.function.no_backprop_mode():
-            sum_time = 0
-            start, stop = create_timer()
-            x = self.feature_net(x)
-            sum_time += print_timer(start, stop, sentence="feature net")
-            start, stop = create_timer()
-            x = feature_to_voxel(x, indexes, self.k, self.d, self.h, self.w, batch)
-            sum_time += print_timer(start, stop, sentence="feature_to_voxel")
-            self.viz_input(x)
-            start, stop = create_timer()
-            x = self.middle_conv(x)
-            sum_time += print_timer(start, stop, sentence="middle_conv")
-            start, stop = create_timer()
-            pred_prob, pred_reg = self.rpn(x)
-            sum_time += print_timer(start, stop, sentence="rpn")
-            print("## Sum of execution time: ", sum_time)
-            if config is not None:
-                print("#####   Visualize   #####")
-                self.visualize(pred_reg, gt_reg, pred_prob, gt_prob, **config)
-            else:
-                print("##### Calc accuracy #####")
-                return self.calc_accuracy(pred_reg, gt_reg, pred_prob, gt_prob)

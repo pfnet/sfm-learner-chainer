@@ -34,24 +34,24 @@ dataset:
       seq_len: 3
 
 updater:
-  name: MultiprocessParallelUpdater
+  name: StandardUpdater
 
 iterator:
-  name: MultiprocessIterator
-  train_batchsize: 2
+  name: SerialIterator # MultiprocessIterator
+  train_batchsize: 4
   test_batchsize: 2
-  args:
-    n_processes: 2
-    n_prefetch: 1
-    shared_mem: 60000000
+  #args:
+  #  n_processes: 2
+  #  n_prefetch: 1
+  #  shared_mem: 60000000
 
 optimizer:
   name: Adam # MomentumSGD
   args:
-    lr: 0.01
-    momentum: 0.9
-  hook:
-    WeightDecay: 0.0002
+    beta1: 0.9
+    beta2: 0.999
+  #hook:
+  #  WeightDecay: 0.0002
 
 extension:
   #Evaluator:

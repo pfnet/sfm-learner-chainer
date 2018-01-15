@@ -116,17 +116,14 @@ def create_updater(train_iter, optimizer, config, devices):
     if "MultiprocessParallelUpdater" in config['name']:
         Updater = chainer.training.updaters.MultiprocessParallelUpdater
         # Updater = MyMultiprocessParallelUpdater
-        return Updater(train_iter, optimizer, devices=devices,
-                       converter=voxelnet_concat)
+        return Updater(train_iter, optimizer, devices=devices)
 
     Updater = getattr(chainer.training, config['name'])
     if "Standard" in config['name']:
         device = None if devices is None else devices['main']
-        return Updater(train_iter, optimizer, device=device,
-                       converter=voxelnet_concat)
+        return Updater(train_iter, optimizer, device=device)
     else:
-        return Updater(train_iter, optimizer, devices=devices,
-                       converter=voxelnet_concat)
+        return Updater(train_iter, optimizer, devices=devices)
 
 def create_optimizer(config, model):
     Optimizer = getattr(chainer.optimizers, config['name'])

@@ -18,7 +18,7 @@ class PoseNet(chainer.Chain):
 
             self.pose1 = L.Convolution2D(None, 256, ksize=4, stride=2, pad=1)
             self.pose2 = L.Convolution2D(None, 256, ksize=4, stride=2, pad=1)
-            self.poseout = L.Convolution2D(None, self.n_sources * 2, ksize=1, stride=0, pad=0)
+            self.poseout = L.Convolution2D(None, self.n_sources * 6, ksize=1, stride=1, pad=0)
 
             self.exp5 = L.Deconvolution2D(None, 256, ksize=4, stride=2, pad=1)
             self.exp4 = L.Deconvolution2D(None, 128, ksize=4, stride=2, pad=1)
@@ -69,15 +69,13 @@ class PoseNet(chainer.Chain):
     def __call__(self, x_target, x_sources, do_exp=True):
         """
         x_target: chainer.Variable of shape [N, 3, H, W]
-        x_sources: list. len(list)=self. n_source. list[i] should be chainer.Variable of shape [N, 3, H_i, W_i]
+        x_sources: chainer.Variable of shape [N, 3 * Source, H, W]
         """
-        if len(x_sources) != self.n_sources:
-            raise ValueError("len(x_sources) should match to self.n_source")
-        h = F.concat([x_target, F.concat(x_sources, axis=1)], axis=1)
+        h = F.concat([x_target, x_sources], axis=1)
         h = self.encode(h)
         poses = self.pose(h)
         if do_exp:
-            return poses
-        else:
             masks = self.exp(h)
             return poses, masks
+        else:
+            return poses

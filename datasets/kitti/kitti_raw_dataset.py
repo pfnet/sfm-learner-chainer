@@ -10,8 +10,7 @@ from scipy.misc import imread
 from chainer import dataset
 
 def load_as_float(path):
-    return imread(path).astype(np.float32)
-
+    return imread(path).astype(np.float32).transpose(2, 1, 0)
 
 class KittiRawDataset(dataset.DatasetMixin):
 
