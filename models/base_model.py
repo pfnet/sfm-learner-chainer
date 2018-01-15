@@ -64,7 +64,6 @@ class SFMLearner(chainer.Chain):
            Return:
                loss (Variable).
         """
-        print(tgt_img.shape, src_imgs.shape, intrinsics.shape, inv_intrinsics.shape)
         batchsize, n_sources, _, H, W = src_imgs.shape # tgt_img.shape
         stacked_src_imgs = self.xp.reshape(src_imgs, (batchsize, -1, H, W))
         pred_disps = self.disp_net(tgt_img)
@@ -84,7 +83,6 @@ class SFMLearner(chainer.Chain):
             for i in range(n_sources):
                 # Inverse warp the source image to the target image frame
                 i_channel = 3 * i
-                print("#######################")
                 curr_proj_image = transform(
                     curr_src_imgs[:, i_channel : (i_channel + 3)],
                     pred_depthes[ns], #F.squeeze(pred_depthes[ns], axis=1),
