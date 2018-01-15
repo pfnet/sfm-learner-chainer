@@ -1,2 +1,13 @@
 **/.idea/**
 *.pyc
+tmp.py
+__pycache__/*
+*.c
+*.so
+*.pyc
+*.html
+results
+build
+*_img
+*.caffemodel
+*.npz*
