@@ -12,18 +12,56 @@ import copy
 from chainer import datasets
 from datasets.kitti.kitti_raw_dataset import KittiRawDataset
 
-def _transform(inputs, crop_size=(512, 512), g_scale=[0.95, 1.05],
-               l_rotate=None, g_rotate=None, resolution=None, voxel_shape=None,
-               x_range=None, y_range=None, z_range=None, t=35, thres_t=None,
-               anchor_size=(1.56, 1.6, 3.9), anchor_center=(-1.0, 0., 0.),
-               fliplr=False, n_class=20, scale_label=1, norm_input=False,
-               label_rotate=False):
+def make_intrinsics_matrix(fx, fy, cx, cy):
+    # Assumes batch input
+    batch_size = fx.get_shape().as_list()[0]
+    zeros = tf.zeros_like(fx)
+    r1 = tf.stack([fx, zeros, cx], axis=1)
+    r2 = tf.stack([zeros, fy, cy], axis=1)
+    r3 = tf.constant([0.,0.,1.], shape=[1, 3])
+    r3 = tf.tile(r3, [batch_size, 1])
+    intrinsics = tf.stack([r1, r2, r3], axis=1)
+    return intrinsics
+
+def data_augmentation(tgt_img, src_imgs, intrinsics, out_h, out_w):
+    # Random scaling
+    def random_scaling(im, intrinsics):
+        batch_size, in_h, in_w, _ = im.get_shape().as_list()
+        scaling = np.random.uniform(1, 1.15, 2)
+        x_scaling = scaling[0]
+        y_scaling = scaling[1]
+        out_h = tf.cast(in_h * y_scaling, dtype=tf.int32)
+        out_w = tf.cast(in_w * x_scaling, dtype=tf.int32)
+        im = tf.image.resize_area(im, [out_h, out_w])
+        fx = intrinsics[:,0,0] * x_scaling
+        fy = intrinsics[:,1,1] * y_scaling
+        cx = intrinsics[:,0,2] * x_scaling
+        cy = intrinsics[:,1,2] * y_scaling
+        intrinsics = make_intrinsics_matrix(fx, fy, cx, cy)
+        return im, intrinsics
+
+    # Random cropping
+    def random_cropping(im, intrinsics, out_h, out_w):
+        # batch_size, in_h, in_w, _ = im.get_shape().as_list()
+        batch_size, in_h, in_w, _ = tf.unstack(tf.shape(im))
+        offset_y = tf.random_uniform([1], 0, in_h - out_h + 1, dtype=tf.int32)[0]
+        offset_x = tf.random_uniform([1], 0, in_w - out_w + 1, dtype=tf.int32)[0]
+        im = tf.image.crop_to_bounding_box(
+            im, offset_y, offset_x, out_h, out_w)
+        fx = intrinsics[:,0,0]
+        fy = intrinsics[:,1,1]
+        cx = intrinsics[:,0,2] - tf.cast(offset_x, dtype=tf.float32)
+        cy = intrinsics[:,1,2] - tf.cast(offset_y, dtype=tf.float32)
+        intrinsics = make_intrinsics_matrix(fx, fy, cx, cy)
+        return im, intrinsics
+    im, intrinsics = random_scaling(im, intrinsics)
+    im, intrinsics = random_cropping(im, intrinsics, out_h, out_w)
+    im = tf.cast(im, dtype=tf.uint8)
+    return im, intrinsics
+
+def _transform(inputs, crop_size=(512, 512)):
     tgt_img, reg_imgs, intrinsics, inv_intrinsics = inputs
     del inputs
-
-    # Local rotation(Label and local points) # TODO
-    if l_rotate:
-        l_rotate = np.random.uniform(l_rotate[0], l_rotate[1])
 
     # Global scaling
     if g_scale:
@@ -31,19 +69,6 @@ def _transform(inputs, crop_size=(512, 512), g_scale=[0.95, 1.05],
         pc *= scale
         places *= scale[:3]
         size *= scale[:3]
-
-    # Global rotation
-    if g_rotate:
-        g_rotate = np.random.uniform(g_rotate[0], g_rotate[1])
-        r = float(g_rotate / 180 * np.pi)
-        rotate_matrix = np.array([
-            [np.cos(r), -np.sin(r), 0],
-            [np.sin(r), np.cos(r), 0],
-            [0, 0, 1]
-        ])
-        pc[:, :3] = np.dot(pc[:, :3], rotate_matrix.transpose())
-        places = np.dot(places, rotate_matrix.transpose()).astype("f")
-        rotates = aug_rotate(rotates, r)
 
     # Flip
     if fliplr:
@@ -56,7 +81,7 @@ def _transform(inputs, crop_size=(512, 512), g_scale=[0.95, 1.05],
             np.array([indexes.shape[0]]), np.array([n_no_empty]))
 
 
-class Kitti3dTransformedDataset(datasets.TransformDataset):
+class KittiRawTransformed(datasets.TransformDataset):
     def __init__(self, data_dir="./", split="train", ignore_labels=True,
                  crop_size=(713, 713), color_sigma=None, g_scale=[0.5, 2.0],
                  resolution=None, x_range=None, y_range=None, z_range=None,
@@ -64,14 +89,8 @@ class Kitti3dTransformedDataset(datasets.TransformDataset):
                  t=35, thres_t=3, norm_input=False, label_rotate=False,
                  anchor_size=(1.56, 1.6, 3.9), anchor_center=(-1.0, 0., 0.),
                  fliplr=False, n_class=19, scale_label=1):
-        self.d = Kitti3dDetectionDataset(
+        self.d = KittiRawDataset(
             data_dir, split, ignore_labels)
         t = partial(
-            _transform, crop_size=crop_size, g_scale=g_scale,
-            l_rotate=l_rotate, g_rotate=g_rotate, voxel_shape=voxel_shape,
-            resolution=resolution, t=t, thres_t=thres_t, norm_input=norm_input,
-            anchor_size=anchor_size, anchor_center=anchor_center,
-            x_range=x_range, y_range=y_range, z_range=z_range,
-            fliplr=fliplr, n_class=n_class, scale_label=scale_label,
-            label_rotate=label_rotate)
+            _transform, crop_size=crop_size, g_scale=g_scale)
         super().__init__(self.d, t)

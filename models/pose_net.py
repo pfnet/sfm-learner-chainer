@@ -22,13 +22,13 @@ class PoseNet(chainer.Chain):
 
             self.exp5 = L.Deconvolution2D(None, 256, ksize=4, stride=2, pad=1)
             self.exp4 = L.Deconvolution2D(None, 128, ksize=4, stride=2, pad=1)
-            self.expout4 = L.Deconvolution2D(None, self.n_sources * 2, ksize=4, stride=2, pad=1)
+            self.expout4 = L.Convolution2D(None, self.n_sources * 2, ksize=3, pad=1)
             self.exp3 = L.Deconvolution2D(None, 64, ksize=4, stride=2, pad=1)
-            self.expout3 = L.Deconvolution2D(None, self.n_sources * 2, ksize=4, stride=2, pad=1)
+            self.expout3 = L.Convolution2D(None, self.n_sources * 2, ksize=3, pad=1)
             self.exp2 = L.Deconvolution2D(None, 32, ksize=6, stride=2, pad=2)
-            self.expout2 = L.Deconvolution2D(None, self.n_sources * 2, ksize=6, stride=2, pad=2)
+            self.expout2 = L.Convolution2D(None, self.n_sources * 2, ksize=3, pad=2)
             self.exp1 = L.Deconvolution2D(None, 32, ksize=6, stride=2, pad=2)
-            self.expout1 = L.Deconvolution2D(None, self.n_sources * 2, ksize=8, stride=2, pad=3)
+            self.expout1 = L.Convolution2D(None, self.n_sources * 2, ksize=3, pad=3)
 
     def encode(self, x):
         normalizer = lambda z: z

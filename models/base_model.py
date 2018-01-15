@@ -85,19 +85,19 @@ class SFMLearner(chainer.Chain):
                 i_channel = 3 * i
                 curr_proj_image = transform(
                     curr_src_imgs[:, i_channel : (i_channel + 3)],
-                    pred_depthes[ns], #F.squeeze(pred_depthes[ns], axis=1),
+                    pred_depthes[ns],
                     pred_poses[i],
                     intrinsics)
                 curr_proj_error = F.absolute(curr_proj_image - curr_tgt_img)
                 # Cross-entropy loss as regularization for the
                 # explainability prediction
                 if self.exp_reg > 0:
-                    curr_exp_logits = pred_maskes[ns][:, i*2 : (i+1)*2, :, :]
+                    pred_exp_logits = pred_maskes[ns][:, i*2:(i+1)*2, :, :]
                     exp_loss += self.exp_reg * \
-                                    self.compute_exp_reg_loss(curr_exp_logits)
-                    curr_exp = F.softmax(curr_exp_logits)
-                    print(curr_proj_error.shape, curr_exp.shape)
-                    pixel_loss += F.mean(curr_proj_error * curr_exp[:, 1:, :, :])
+                                    self.compute_exp_reg_loss(pred_exp_logits)
+                    pred_exp = F.softmax(pred_exp_logits)[:, 1:, :, :]
+                    pred_exp = F.broadcast_to(pred_exp, (batchsize, 3, H, W))
+                    pixel_loss += F.mean(curr_proj_error * pred_exp)
                 else:
                     pixel_loss += F.mean(curr_proj_error)
 
@@ -109,17 +109,27 @@ class SFMLearner(chainer.Chain):
         return total_loss
 
     def compute_exp_reg_loss(self, pred):
+        """Compute expalanation loss.
+
+           Args:
+               pred: Shape is (Batch, 2, H, W)
+        """
         p_shape = pred.shape
         label = self.xp.ones((p_shape[0] * p_shape[2] * p_shape[3],), dtype='i')
-        print(label.shape, pred.shape)
         l = F.softmax_cross_entropy(
             F.reshape(pred, (-1, 2)), label)
         return F.mean(l)
 
     def compute_smooth_loss(self, pred_disp):
+        """Compute smoothness loss for the predicted dpeth maps.
+           L1 norm of the second-order gradients.
+
+           Args:
+               pred_disp: Shape is (Batch, 1, H, W)
+        """
         def gradient(pred):
-            D_dy = pred[:, 1:, :, :] - pred[:, :-1, :, :]
-            D_dx = pred[:, :, 1:, :] - pred[:, :, :-1, :]
+            D_dy = pred[:, :, 1:, :] - pred[:, :, :-1, :]
+            D_dx = pred[:, :, :, 1:] - pred[:, :, :, :-1]
             return D_dx, D_dy
 
         dx, dy = gradient(pred_disp)
@@ -168,4 +178,3 @@ class SFMLearner(chainer.Chain):
             print("Post-processing", time.time() - s)
             # print(sort_index[result_index])
         return pred_reg[result_index], pred_prob[result_index]
-
