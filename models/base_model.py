@@ -5,87 +5,115 @@ from chainer import Variable
 from chainer import functions as F
 from models.transform import transform
 
+#/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
-class Updater(StandardUpdater):
-    def __init__(self, *args, **kwargs):
-        self.models = kwargs.pop('models')
-        self.disp_net = self.models['disp']
-        self.pose = self.models['pose']
-        self.coeff_smooth_reg = kwargs.pop('coeff_smooth_reg')
-        self.coeff_exp_reg = kwargs.pop('coeff_exp_reg')
-        if self.pose.n_sources != 2:
-            raise ValueError("self.pose.n_sources should be 2. "
-                             "self.pose.n_sources={}".format(self.pose.n_sources))
-        super(Updater, self).__init__(*args, **kwargs)
+from __future__ import division
 
-    def update_core(self):
-        opt_disp = self.get_optimizer('opt_disp')
-        opt_pose = self.get_optimizer('opt_pose')
-        xp = opt_disp.xp
+import functools
+import numpy as np
+import os
+import sys
+import subprocess
+import time
 
-        batch = self.get_iterator('main').next()
-        batchsize = len(batch)
+try:
+    import matplotlib.pyplot as plt
+except:
+    pass
 
-        _, H, W = batch[0][0].shape
-        n_sources = len(batch[0][1])
-        imgs_target = np.zeros((batchsize, 3, H, W), np.float32)
-        imgs_source_list = [np.zeros((batchsize, 3, H, W), np.float32) for i in range(n_sources)]
-        K = np.zeros((batchsize, 3, 3), np.float32)
-        for i in range(batchsize):
-            imgs_target[i] = batch[i][0]
-            for i in range(n_sources):
-                imgs_source_list[i][i] = batch[i][1][i]
-            K[i] = batch[i][2]
-        imgs_target = Variable(xp.asarray(imgs_target))
-        imgs_sources = [Variable(xp.asarray(imgs_source_list[i]) for i in range(n_sources))]
-        K = Variable(xp.asarray(K))
+import chainer
+import chainer.functions as F
+import chainer.links as L
+from models.pose_net import PoseNet
+from models.disp_net import DispNet
 
-        disps = self.disp_net(imgs_target)
-        depthes = [1. / d for d in disps]
-        poses, mask_logits = self.pose(imgs_target, imgs_sources)
+def create_timer():
+    start = chainer.cuda.Event()
+    stop = chainer.cuda.Event()
+    start.synchronize()
+    start.record()
+    return start, stop
 
-        pixel_loss = Variable(0)
-        exp_loss = Variable(0)
-        smooth_loss = Variable(0)
-        for s in range(len(disps)):
-            # Resize by bi-linear intp. (area intp. in the original inmplemenation)
-            curr_imgs_target = F.resize_images(imgs_target, (H // (2 ** s), W // (2 ** s)))
-            curr_imgs_sources = [F.resize_images(imgs_sources[i], (H // (2 ** s), W // (2 ** s)))
-                                 for i in range(n_sources)]
+def print_timer(start, stop, sentence="Time"):
+    stop.record()
+    stop.synchronize()
+    elapsed_time = chainer.cuda.cupy.cuda.get_elapsed_time(
+                           start, stop) / 1000
+    print(sentence, elapsed_time)
+    return elapsed_time
 
-            if self.coeff_smooth_reg > 0:
-                smooth_loss += self.coeff_smooth_reg / (2 ** s) * \
-                               self.compute_smooth_loss(disps[s])
+
+class SFMLearner(chainer.Chain):
+
+    """Sfm Learner original Implementation"""
+
+    def __init__(self, config, pretrained_model=None):
+        super(SFMLearner, self).__init__(
+			pose_net = PoseNet(),
+            disp_net = DispNet())
+
+        self.smooth_reg = config['smooth_reg']
+        self.exp_reg = config['exp_reg']
+
+        if pretrained_model['download']:
+            if not os.path.exists(pretrained_model['download'].split("/")[-1]):
+                subprocess.call(['wget', pretrained_model['download']])
+
+        if pretrained_model['path']:
+            chainer.serializers.load_npz(pretrained_model['path'], self)
+
+    def __call__(self, tgt_img, src_imgs, intrinsics, inv_intrinsics):
+        """
+           Args:
+               tgt_img: target image. Shape is (Batch, 3, H, W)
+               src_imgs: source images. Shape is (Batch, ?, H, W)
+           Return:
+               loss (Variable).
+        """
+        batchsize, _, H, W = tgt_img.shape
+        pred_disps = self.disp_net(tgt_img)
+        pred_depthes = [1 / d for d in pred_disps]
+        pred_pose, pred_mask = self.pose(tgt_img, src_imgs)
+        smooth_loss, exp_loss, pixel_loss = 0, 0, 0
+        for d in range(len(pred_depthes)):
+            curr_img_size = (H // (2 ** d), W // (2 ** d))
+            curr_tgt_img = F.resize_images(tgt_img, curr_img_size)
+            curr_src_imgs = F.resize_images(src_imgs, curr_img_size)
+
+            if self.smooth_reg:
+                smooth_loss += self.smooth_loss / (2 ** d) * \
+                                   self.compute_smooth_loss(pred_disps[d])
 
             for i in range(n_sources):
                 # Inverse warp the source image to the target image frame
                 curr_proj_image = transform(
-                    curr_imgs_sources[i],
-                    F.squeeze(depthes[s], axis=1),
+                    curr_src_imgs[i],
+                    F.squeeze(pred_depthes[d], axis=1),
                     poses[:, i, :],
-                    K[:, s, :, :])  # Why K has dimension for scale?
-                curr_proj_error = F.absolute(curr_proj_image - curr_imgs_target)
+                    K[:, d, :, :])  # Why K has dimension for scale?
+                curr_proj_error = F.absolute(curr_proj_image - curr_tgt_img)
                 # Cross-entropy loss as regularization for the
                 # explainability prediction
-                if self.coeff_exp_reg > 0:
-                    curr_exp_logits = F.slice(mask_logits[s],
+                if self.exp_reg > 0:
+                    curr_exp_logits = F.slice(mask_logits[d],
                                               [0, i * 2, 0, 0],
                                               [-1, 2, -1, -1])
-                    exp_loss += self.coeff_exp_reg * \
-                                self.compute_exp_reg_loss(curr_exp_logits, xp)
+                    exp_loss += self.exp_reg * \
+                                    self.compute_exp_reg_loss(curr_exp_logits)
                     curr_exp = F.softmax(curr_exp_logits)
                     pixel_loss += F.mean(curr_proj_error * curr_exp[:, 1:, :, :])
                 else:
                     pixel_loss += F.mean(curr_proj_error)
 
         total_loss = pixel_loss + smooth_loss + exp_loss
-        opt_disp.cleargrads()
-        opt_pose.cleargrads()
-        total_loss.backward()
-        opt_disp.update()
-        opt_pose.update()
+        chainer.report({'total_loss': total_loss}, self)
+        chainer.report({'pixel_loss': pixel_loss}, self)
+        chainer.report({'smooth_loss': smooth_loss}, self)
+        chainer.report({'exp_loss': exp_loss}, self)
+        return total_loss
 
-    def compute_exp_reg_loss(self, pred, xp):
+    def compute_exp_reg_loss(self, pred):
         tmp = np.array([0, 1], dtype=np.float32).reshape(1, 2, 1, 1)
         ref_exp_mask = np.tile(tmp, (pred.shape[0], 1, pred.shape[2], pred.shape[3]))
         ref_exp_mask = xp.asarray(ref_exp_mask, dtype=xp.float32)
@@ -105,3 +133,71 @@ class Updater(StandardUpdater):
         dydx, dy2 = gradient(dy)
         return F.mean(F.absolute(dx2)) + F.mean(F.absolute(dxdy)) \
                + F.mean(F.absolute(dydx)) + F.mean(F.absolute(dy2))
+
+    def inference(self, x, counter, indexes, batch, n_no_empty,
+                  config=None, thres_prob=0.996,
+                  anchor_size=None, anchor_center=None, anchor=None):
+        with chainer.using_config('train', False), \
+                 chainer.function.no_backprop_mode():
+            sum_time = 0
+            start, stop = create_timer()
+            x = self.feature_net(x)
+            sum_time += print_timer(start, stop, sentence="feature net")
+            start, stop = create_timer()
+            x = feature_to_voxel(x, indexes, self.k, self.d, self.h, self.w, batch)
+            sum_time += print_timer(start, stop, sentence="feature_to_voxel")
+            start, stop = create_timer()
+            x = self.middle_conv(x)
+            sum_time += print_timer(start, stop, sentence="middle_conv")
+            start, stop = create_timer()
+            pred_prob, pred_reg = self.rpn(x)
+            sum_time += print_timer(start, stop, sentence="rpn")
+            print("## Sum of execution time: ", sum_time)
+            s = time.time()
+            pred_reg = self.xp.transpose(pred_reg, (0, 2, 3, 1)).data[0]
+            pred_prob = pred_prob[0, 0].data
+            candidate = F.sigmoid(pred_prob).data > thres_prob
+            pred_prob = pred_prob[candidate]
+            pred_reg = pred_reg[candidate]
+            pred_prob = chainer.cuda.to_cpu(pred_prob)
+            pred_reg = chainer.cuda.to_cpu(pred_reg)
+            candidate = chainer.cuda.to_cpu(candidate)
+            anchor = anchor[candidate]
+            pred_reg = self.decoder(pred_reg, anchor, anchor_size, xp=np)
+            # print(pred_reg[:, :3])
+            sort_index = np.argsort(pred_prob)[::-1]
+            pred_reg = pred_reg[sort_index]
+            pred_prob = pred_prob[sort_index]
+            result_index = nms_3d(pred_reg,
+                                  pred_prob,
+                                  thres_prob)
+            print("Post-processing", time.time() - s)
+            # print(sort_index[result_index])
+        return pred_reg[result_index], pred_prob[result_index]
+
+
+    def predict(self, x, counter, indexes, gt_prob, gt_reg, batch,
+                n_no_empty, config=None):
+        with chainer.using_config('train', False), \
+                 chainer.function.no_backprop_mode():
+            sum_time = 0
+            start, stop = create_timer()
+            x = self.feature_net(x)
+            sum_time += print_timer(start, stop, sentence="feature net")
+            start, stop = create_timer()
+            x = feature_to_voxel(x, indexes, self.k, self.d, self.h, self.w, batch)
+            sum_time += print_timer(start, stop, sentence="feature_to_voxel")
+            self.viz_input(x)
+            start, stop = create_timer()
+            x = self.middle_conv(x)
+            sum_time += print_timer(start, stop, sentence="middle_conv")
+            start, stop = create_timer()
+            pred_prob, pred_reg = self.rpn(x)
+            sum_time += print_timer(start, stop, sentence="rpn")
+            print("## Sum of execution time: ", sum_time)
+            if config is not None:
+                print("#####   Visualize   #####")
+                self.visualize(pred_reg, gt_reg, pred_prob, gt_prob, **config)
+            else:
+                print("##### Calc accuracy #####")
+                return self.calc_accuracy(pred_reg, gt_reg, pred_prob, gt_prob)

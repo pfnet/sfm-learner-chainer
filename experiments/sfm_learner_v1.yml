@@ -8,17 +8,11 @@ model:
   module: models.base_model
   name: LightVoxelnet_Rotate
   pretrained_model:
-    path: # 1062_model.npz
-    download: # https://www.dropbox.com/s/wyvfjoz9ho9q0ct/1062_model.npz
+    path: # 0000_model.npz
+    download: # https://0000_model.npz
   architecture:
-    k: 3 # If you want to assign number of non-empty block
-    d: 10
-    h: 400
-    w: 352
-    alpha: 1.0
-    beta: 1.0
-    p: 1
-    aug_gt: True
+    smooth_reg: 0
+    exp_reg: 0
 
 dataset:
   train:
