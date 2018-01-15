@@ -12,7 +12,7 @@ model:
     download: # https://0000_model.npz
   architecture:
     smooth_reg: 0
-    exp_reg: 0
+    exp_reg: 1
 
 dataset:
   train:
@@ -37,13 +37,13 @@ updater:
   name: StandardUpdater
 
 iterator:
-  name: SerialIterator # MultiprocessIterator
+  name: MultiprocessIterator
   train_batchsize: 4
   test_batchsize: 2
-  #args:
-  #  n_processes: 2
-  #  n_prefetch: 1
-  #  shared_mem: 60000000
+  args:
+    n_processes: 2
+    n_prefetch: 1
+    shared_mem: 60000000
 
 optimizer:
   name: Adam # MomentumSGD

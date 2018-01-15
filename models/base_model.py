@@ -77,7 +77,7 @@ class SFMLearner(chainer.Chain):
             curr_src_imgs = F.resize_images(stacked_src_imgs, curr_img_size)
 
             if self.smooth_reg:
-                smooth_loss += self.smooth_loss / (2 ** ns) * \
+                smooth_loss += self.smooth_reg / (2 ** ns) * \
                                    self.compute_smooth_loss(pred_disps[ns])
 
             for i in range(n_sources):
@@ -92,12 +92,11 @@ class SFMLearner(chainer.Chain):
                 # Cross-entropy loss as regularization for the
                 # explainability prediction
                 if self.exp_reg > 0:
-                    curr_exp_logits = F.slice(pred_maskes[ns],
-                                              [0, i * 2, 0, 0],
-                                              [-1, 2, -1, -1])
+                    curr_exp_logits = pred_maskes[ns][:, i*2 : (i+1)*2, :, :]
                     exp_loss += self.exp_reg * \
                                     self.compute_exp_reg_loss(curr_exp_logits)
                     curr_exp = F.softmax(curr_exp_logits)
+                    print(curr_proj_error.shape, curr_exp.shape)
                     pixel_loss += F.mean(curr_proj_error * curr_exp[:, 1:, :, :])
                 else:
                     pixel_loss += F.mean(curr_proj_error)
@@ -110,12 +109,11 @@ class SFMLearner(chainer.Chain):
         return total_loss
 
     def compute_exp_reg_loss(self, pred):
-        tmp = np.array([0, 1], dtype=np.float32).reshape(1, 2, 1, 1)
-        ref_exp_mask = np.tile(tmp, (pred.shape[0], 1, pred.shape[2], pred.shape[3]))
-        ref_exp_mask = xp.asarray(ref_exp_mask, dtype=xp.float32)
+        p_shape = pred.shape
+        label = self.xp.ones((p_shape[0] * p_shape[2] * p_shape[3],), dtype='i')
+        print(label.shape, pred.shape)
         l = F.softmax_cross_entropy(
-            F.reshape(pred, (-1, 2)), F.reshape(ref_exp_mask, (-1, 2))
-        )
+            F.reshape(pred, (-1, 2)), label)
         return F.mean(l)
 
     def compute_smooth_loss(self, pred_disp):
