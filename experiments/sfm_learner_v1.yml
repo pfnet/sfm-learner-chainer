@@ -6,7 +6,7 @@ seed: 1
 
 model:
   module: models.base_model
-  name: LightVoxelnet_Rotate
+  name: SFMLearner
   pretrained_model:
     path: # 0000_model.npz
     download: # https://0000_model.npz
