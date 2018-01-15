@@ -3,7 +3,7 @@ from chainer.training import StandardUpdater
 import numpy as np
 from chainer import Variable
 from chainer import functions as F
-from transform import transform
+from models.transform import transform
 
 
 class Updater(StandardUpdater):

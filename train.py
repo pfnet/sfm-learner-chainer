@@ -12,8 +12,6 @@ import chainer
 from chainer import cuda, optimizers, serializers
 from chainer import training
 
-subprocess.call(['sh', "setup.sh"])
-
 from config_utils import *
 
 chainer.cuda.set_max_workspace_size(1024 * 1024 * 1024)
@@ -22,8 +20,6 @@ os.environ["CHAINER_TYPE_CHECK"] = "0"
 from collections import OrderedDict
 yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
     lambda loader, node: OrderedDict(loader.construct_pairs(node)))
-
-from voxelnet.models import voxelnet_paper
 
 def train_sfm_learner():
     """Training VoxelNet."""
@@ -34,7 +30,7 @@ def train_sfm_learner():
     train_iter, test_iter = create_iterator(train_data, test_data,
                                             config['iterator'], devices,
                                             config['updater']['name'])
-    class_weight = get_class_weight(config)
+
     optimizer = create_optimizer(config['optimizer'], model)
     updater = create_updater(train_iter, optimizer, config['updater'], devices)
     trainer = training.Trainer(updater, config['end_trigger'], out=config['results'])

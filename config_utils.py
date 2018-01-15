@@ -27,7 +27,7 @@ from chainer.training import extensions
 import chainercv
 
 from models import base_model
-from extension_util import lr_utils
+# from extension_util import lr_utils
 
 from collections import OrderedDict
 yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,

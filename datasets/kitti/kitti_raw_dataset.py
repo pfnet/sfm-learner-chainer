@@ -25,26 +25,30 @@ class KittiRawDataset(dataset.DatasetMixin):
             KiTTi Raw Dataset.
     """
     def __init__(self, data_dir=None, seq_len=3, split='train'):
-        with open(data_dir + "{}.txt".format(split), 'r') as f:
+        with open(os.path.join(data_dir, "{}.txt".format(split)), 'r') as f:
             dir_indexes = f.read().split('\n')
 
-        self.dir_pathes = [data_dir + index for index in dir_indexes]
+        if not dir_indexes[-1]:
+            dir_indexes = dir_indexes[:-1]
+
+        self.dir_pathes = [os.path.join(data_dir, index) for index in dir_indexes]
         self.seq_len = seq_len
         self.samples = self.crawl_folders()
 
     def crawl_folders(self):
         sequence_set = []
-        demi_length = (self.seq_len - 1)//2
+        demi_len = (self.seq_len - 1)//2
         for dir_path in self.dir_pathes:
             calib_path = os.path.join(dir_path, 'cam.txt')
             intrinsics = np.genfromtxt(calib_path, delimiter=',')
             intrinsics = intrinsics.astype(np.float32).reshape((3, 3))
-            imgs = sorted(glob.glob('*.jpg'))
+            imgs = glob.glob(os.path.join(dir_path, '*.jpg'))
+            sorted(imgs)
             if len(imgs) < self.seq_len:
                 continue
             for i in range(demi_len, len(imgs)-demi_len):
                 sample = {'intrinsics': intrinsics, 'tgt': imgs[i],
-                　　　　　　'ref_imgs': []}
+                          'ref_imgs': []}
                 for j in range(-demi_len, demi_len + 1):
                     if j != 0:
                         sample['ref_imgs'].append(imgs[i+j])
@@ -59,11 +63,5 @@ class KittiRawDataset(dataset.DatasetMixin):
         sample = self.samples[i]
         tgt_img = load_as_float(sample['tgt'])
         ref_imgs = [load_as_float(ref_img) for ref_img in sample['ref_imgs']]
-        if self.transform is not None:
-            imgs, intrinsics = self.transform([tgt_img] + ref_imgs,
-            　　　　　　　　　　　　　　　　　　　　 np.copy(sample['intrinsics']))
-            tgt_img = imgs[0]
-            ref_imgs = imgs[1:]
-        else:
-            intrinsics = np.copy(sample['intrinsics'])
+        intrinsics = np.copy(sample['intrinsics'])
         return tgt_img, ref_imgs, intrinsics, np.linalg.inv(intrinsics)
