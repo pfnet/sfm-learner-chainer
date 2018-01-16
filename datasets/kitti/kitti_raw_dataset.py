@@ -9,8 +9,9 @@ from scipy.misc import imread
 
 from chainer import dataset
 
-def load_as_float(path):
-    return imread(path).astype(np.float32).transpose(2, 1, 0)
+def load_as_float_norm(path):
+    img = imread(path).astype(np.float32).transpose(2, 1, 0)
+    return (img / 255.) * 2 - 1
 
 class KittiRawDataset(dataset.DatasetMixin):
 
@@ -60,7 +61,7 @@ class KittiRawDataset(dataset.DatasetMixin):
 
     def get_example(self, i):
         sample = self.samples[i]
-        tgt_img = load_as_float(sample['tgt'])
-        ref_imgs = [load_as_float(ref_img) for ref_img in sample['ref_imgs']]
+        tgt_img = load_as_float_norm(sample['tgt'])
+        ref_imgs = [load_as_float_norm(ref_img) for ref_img in sample['ref_imgs']]
         intrinsics = np.copy(sample['intrinsics'])
         return tgt_img, ref_imgs, intrinsics, np.linalg.inv(intrinsics)

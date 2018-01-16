@@ -71,7 +71,7 @@ def data_augmentation(tgt_img, src_imgs, intrinsics):
     imgs, intrinsics = random_cropping(imgs, intrinsics, out_h, out_w)
     imgs, intrinsics = random_flip(imgs, intrinsics)
     # im = tf.cast(im, dtype=tf.uint8)
-    return imgs[0], [img for img in imgs[1:]], intrinsics
+    return imgs[0], imgs[1:], intrinsics
 
 def get_multi_scale_intrinsics(intrinsics, n_scales):
     """Scale the intrinsics accordingly for each scale
@@ -87,9 +87,7 @@ def get_multi_scale_intrinsics(intrinsics, n_scales):
         fy = intrinsics[1, 1]/(2 ** s)
         cx = intrinsics[0, 2]/(2 ** s)
         cy = intrinsics[1, 2]/(2 ** s)
-        intrinsics = np.array([[fx, 0., cx],
-                               [0., fy, cy],
-                               [0., 0., 1.]], dtype='f')
+        intrinsics = make_intrinsics_matrix(fx, fy, cx, cy)
         multi_intrinsics.append(intrinsics)
     return multi_intrinsics
 

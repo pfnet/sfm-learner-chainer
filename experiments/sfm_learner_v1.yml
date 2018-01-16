@@ -1,6 +1,6 @@
-end_trigger: [150, "epoch"] # 3200 / 16 = 200 * 150 = 30000
+end_trigger: [200000, "iteration"] # 3200 / 16 = 200 * 150 = 30000
 results: results
-gpus: [0, 1]
+gpus: [1]
 mode: Train
 seed: 1
 
@@ -11,8 +11,8 @@ model:
     path: # 0000_model.npz
     download: # https://0000_model.npz
   architecture:
-    smooth_reg: 1
-    exp_reg: 1
+    smooth_reg: 0.5
+    exp_reg: 0.2
 
 dataset:
   train:
@@ -40,39 +40,38 @@ updater:
 iterator:
   name: MultiprocessIterator
   train_batchsize: 4
-  test_batchsize: 2
+  test_batchsize: 4
   args:
-    n_processes: 2
+    n_processes: 4
     n_prefetch: 1
     shared_mem: 60000000
 
 optimizer:
-  name: Adam # MomentumSGD
+  name: Adam
   args:
+    alpha: 0.0002
     beta1: 0.9
     beta2: 0.999
-  #hook:
-  #  WeightDecay: 0.0002
 
 extension:
   #Evaluator:
   #  name: Evaluator
   #  trigger: [1, 'epoch']
   snapshot:
-      trigger: [150, "epoch"]
+      trigger: [200000, "iteration"]
   snapshot_object:
-      trigger: [10, "epoch"]
+      trigger: [10000, "iteration"]
   LogReport:
-    trigger: [1, "epoch"]
+    trigger: [100, "iteration"]
   PrintReport:
     name:
       epoch
       iteration
-      main/loss
-      main/prob_loss
-      main/reg_loss
-      lr
-    trigger: [1, "epoch"]
+      main/total_loss
+      main/pixel_loss
+      main/smooth_loss
+      main/exp_loss
+    trigger: [100, "iteration"]
   ProgressBar:
       update_interval: 10
   observe_lr:

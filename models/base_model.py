@@ -61,6 +61,7 @@ class SFMLearner(chainer.Chain):
            Args:
                tgt_img: target image. Shape is (Batch, 3, H, W)
                src_imgs: source images. Shape is (Batch, ?, H, W)
+               intrinsics: Shape is (Batch, 3, 3)
            Return:
                loss (Variable).
         """
@@ -87,7 +88,7 @@ class SFMLearner(chainer.Chain):
                     curr_src_imgs[:, i_channel : (i_channel + 3)],
                     pred_depthes[ns],
                     pred_poses[i],
-                    intrinsics[ns])
+                    intrinsics[:, ns])
                 curr_proj_error = F.absolute(curr_proj_image - curr_tgt_img)
                 # Cross-entropy loss as regularization for the
                 # explainability prediction
