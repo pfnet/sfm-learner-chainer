@@ -23,7 +23,14 @@ def make_intrinsics_matrix(fx, fy, cx, cy):
     intrinsics = tf.stack([r1, r2, r3], axis=1)
     return intrinsics
 
-def data_augmentation(tgt_img, src_imgs, intrinsics, out_h, out_w):
+def data_augmentation(tgt_img, src_imgs, intrinsics):
+    """Data augmentation for training models.
+
+       Args:
+           tgt_img(ndarray): Shape is (3, H, W)
+           src_img(list): Shape is [N, 3, H, W]
+           intrinsics(ndarray): Shape is (3, 3)
+    """
     # Random scaling
     def random_scaling(im, intrinsics):
         batch_size, in_h, in_w, _ = im.get_shape().as_list()
@@ -54,43 +61,62 @@ def data_augmentation(tgt_img, src_imgs, intrinsics, out_h, out_w):
         cy = intrinsics[:,1,2] - tf.cast(offset_y, dtype=tf.float32)
         intrinsics = make_intrinsics_matrix(fx, fy, cx, cy)
         return im, intrinsics
+
+    _, out_h, out_w = tgt_img.shape
     im, intrinsics = random_scaling(im, intrinsics)
     im, intrinsics = random_cropping(im, intrinsics, out_h, out_w)
     im = tf.cast(im, dtype=tf.uint8)
     return im, intrinsics
 
-def _transform(inputs, crop_size=(512, 512)):
+def get_multi_scale_intrinsics(intrinsics, n_scales):
+    """Scale the intrinsics accordingly for each scale
+       Args:
+           intrinsics: Intrinsics for original image. Shape is (3, 3).
+           n_scales(int): Number of scale.
+       Returns:
+           multi_intrinsics: Multi scale intrinsics.
+    """
+    multi_intrinsics = []
+    for s in range(n_scales):
+        fx = intrinsics[0, 0]/(2 ** s)
+        fy = intrinsics[1, 1]/(2 ** s)
+        cx = intrinsics[0, 2]/(2 ** s)
+        cy = intrinsics[1, 2]/(2 ** s)
+        intrinsics = np.array([[fx, 0., cx],
+                               [0., fy, cy],
+                               [0., 0., 1.]])
+        multi_intrinsics.append(intrinsics)
+    return multi_intrinsics
+
+def _transform(inputs, n_scale=4, ):
     tgt_img, reg_imgs, intrinsics, inv_intrinsics = inputs
     del inputs
 
-    # Global scaling
-    if g_scale:
-        scale = np.random.uniform(g_scale[0], g_scale[1], 4)
-        pc *= scale
-        places *= scale[:3]
-        size *= scale[:3]
+    # # Global scaling
+    # if g_scale:
+    #     scale = np.random.uniform(g_scale[0], g_scale[1], 4)
+    #     pc *= scale
+    #     places *= scale[:3]
+    #     size *= scale[:3]
 
-    # Flip
-    if fliplr:
-        if np.random.rand() > 0.5:
-            pc[:, 1] = pc[:, 1] * -1
-            places[:, 1] = places[:, 1] * -1
-            rotates = rotates * -1
+    # # Flip
+    # if fliplr:
+    #     if np.random.rand() > 0.5:
+    #         pc[:, 1] = pc[:, 1] * -1
+    #         places[:, 1] = places[:, 1] * -1
+    #         rotates = rotates * -1
 
-    return (feature_input, counter, indexes, gt_obj, gt_reg, gt_obj_for_reg,
-            np.array([indexes.shape[0]]), np.array([n_no_empty]))
+    tgt_img, src_imgs, intrinsics = data_augmentation(tgt_img, src_imgs,
+                                                      intrinsics)
+    intrinsics = get_multi_scale_intrinsics(intrinsics, n_scale)
+    return tgt_img, src_imgs, intrinsics, _
 
 
 class KittiRawTransformed(datasets.TransformDataset):
-    def __init__(self, data_dir="./", split="train", ignore_labels=True,
-                 crop_size=(713, 713), color_sigma=None, g_scale=[0.5, 2.0],
-                 resolution=None, x_range=None, y_range=None, z_range=None,
-                 l_rotate=None, g_rotate=None, voxel_shape=None,
-                 t=35, thres_t=3, norm_input=False, label_rotate=False,
-                 anchor_size=(1.56, 1.6, 3.9), anchor_center=(-1.0, 0., 0.),
-                 fliplr=False, n_class=19, scale_label=1):
+    def __init__(self, data_dir=None, seq_len=3, split='train',
+                 n_scale=4, ):
         self.d = KittiRawDataset(
-            data_dir, split, ignore_labels)
+            data_dir=None, seq_len=3, split='train')
         t = partial(
-            _transform, crop_size=crop_size, g_scale=g_scale)
+            _transform, n_scale=4, )
         super().__init__(self.d, t)

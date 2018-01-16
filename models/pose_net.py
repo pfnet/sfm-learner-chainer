@@ -40,7 +40,7 @@ class PoseNet(chainer.Chain):
         h = self.activation(normalizer(self.c5(h)))
         return h
 
-    def pose(self, x):
+    def pred_pose(self, x):
         normalizer = lambda z: z
         h = x
         h = self.activation(normalizer(self.pose1(h)))
@@ -52,7 +52,7 @@ class PoseNet(chainer.Chain):
         h = F.split_axis(h, self.n_sources, 1)
         return h
 
-    def exp(self, x):
+    def pred_expalanation(self, x):
         normalizer = lambda z: z
         h = x
         h = self.activation(normalizer(self.exp5(h)))
@@ -73,9 +73,9 @@ class PoseNet(chainer.Chain):
         """
         h = F.concat([x_target, x_sources], axis=1)
         h = self.encode(h)
-        poses = self.pose(h)
+        poses = self.pred_pose(h)
         if do_exp:
-            masks = self.exp(h)
+            masks = self.pred_expalanation(h)
             return poses, masks
         else:
             return poses

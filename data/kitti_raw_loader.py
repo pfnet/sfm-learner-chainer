@@ -12,7 +12,7 @@ class KittiRawLoader(object):
                  min_speed=2,
                  seq_length=3):
         dir_path = Path(__file__).realpath().dirname()
-        test_scene_file = dir_path/'test_scenes.txt'
+        test_scene_file = dir_path/'test_scenes_eigen.txt'
         static_frames_file = Path(static_frames_file)
         with open(test_scene_file, 'r') as f:
             test_scenes = f.readlines()
@@ -21,7 +21,8 @@ class KittiRawLoader(object):
         self.img_height = img_height
         self.img_width = img_width
         self.cam_ids = ['02', '03']
-        self.date_list = ['2011_09_26', '2011_09_28', '2011_09_29', '2011_09_30', '2011_10_03']
+        self.date_list = ['2011_09_26', '2011_09_28', '2011_09_29',
+                          '2011_09_30', '2011_10_03']
         self.min_speed = min_speed
         self.collect_train_folders()
         self.collect_static_frames(static_frames_file)

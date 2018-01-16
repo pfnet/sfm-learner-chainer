@@ -87,7 +87,7 @@ class SFMLearner(chainer.Chain):
                     curr_src_imgs[:, i_channel : (i_channel + 3)],
                     pred_depthes[ns],
                     pred_poses[i],
-                    intrinsics)
+                    intrinsics[ns])
                 curr_proj_error = F.absolute(curr_proj_image - curr_tgt_img)
                 # Cross-entropy loss as regularization for the
                 # explainability prediction
@@ -138,43 +138,14 @@ class SFMLearner(chainer.Chain):
         return F.mean(F.absolute(dx2)) + F.mean(F.absolute(dxdy)) \
                + F.mean(F.absolute(dydx)) + F.mean(F.absolute(dy2))
 
-    def inference(self, x, counter, indexes, batch, n_no_empty,
-                  config=None, thres_prob=0.996,
-                  anchor_size=None, anchor_center=None, anchor=None):
+    def inference(self, tgt_img, src_imgs, intrinsics, inv_intrinsics):
         with chainer.using_config('train', False), \
                  chainer.function.no_backprop_mode():
-            sum_time = 0
             start, stop = create_timer()
-            x = self.feature_net(x)
-            sum_time += print_timer(start, stop, sentence="feature net")
-            start, stop = create_timer()
-            x = feature_to_voxel(x, indexes, self.k, self.d, self.h, self.w, batch)
-            sum_time += print_timer(start, stop, sentence="feature_to_voxel")
-            start, stop = create_timer()
-            x = self.middle_conv(x)
-            sum_time += print_timer(start, stop, sentence="middle_conv")
-            start, stop = create_timer()
-            pred_prob, pred_reg = self.rpn(x)
-            sum_time += print_timer(start, stop, sentence="rpn")
-            print("## Sum of execution time: ", sum_time)
-            s = time.time()
-            pred_reg = self.xp.transpose(pred_reg, (0, 2, 3, 1)).data[0]
-            pred_prob = pred_prob[0, 0].data
-            candidate = F.sigmoid(pred_prob).data > thres_prob
-            pred_prob = pred_prob[candidate]
-            pred_reg = pred_reg[candidate]
-            pred_prob = chainer.cuda.to_cpu(pred_prob)
-            pred_reg = chainer.cuda.to_cpu(pred_reg)
-            candidate = chainer.cuda.to_cpu(candidate)
-            anchor = anchor[candidate]
-            pred_reg = self.decoder(pred_reg, anchor, anchor_size, xp=np)
-            # print(pred_reg[:, :3])
-            sort_index = np.argsort(pred_prob)[::-1]
-            pred_reg = pred_reg[sort_index]
-            pred_prob = pred_prob[sort_index]
-            result_index = nms_3d(pred_reg,
-                                  pred_prob,
-                                  thres_prob)
-            print("Post-processing", time.time() - s)
-            # print(sort_index[result_index])
-        return pred_reg[result_index], pred_prob[result_index]
+            batchsize, n_sources, _, H, W = src_imgs.shape # tgt_img.shape
+            stacked_src_imgs = self.xp.reshape(src_imgs, (batchsize, -1, H, W))
+            pred_depth = 1 / self.disp_net(tgt_img)[0]
+            pred_pose, pred_maskes = self.pose_net(tgt_img, stacked_src_imgs)
+            pred_mask = pred_maskes[0]
+            print_timer(start, stop, sentence="Inference Time")
+            return pred_depth, pred_pose, pred_maskes
