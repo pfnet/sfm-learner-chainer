@@ -60,8 +60,8 @@ class SFMLearner(chainer.Chain):
         """
            Args:
                tgt_img: target image. Shape is (Batch, 3, H, W)
-               src_imgs: source images. Shape is (Batch, ?, H, W)
-               intrinsics: Shape is (Batch, 3, 3)
+               src_imgs: source images. Shape is (Batch, ?, 3, H, W)
+               intrinsics: Shape is (Batch, ?, 3, 3)
            Return:
                loss (Variable).
         """
@@ -83,9 +83,8 @@ class SFMLearner(chainer.Chain):
 
             for i in range(n_sources):
                 # Inverse warp the source image to the target image frame
-                i_channel = 3 * i
                 curr_proj_image = transform(
-                    curr_src_imgs[:, i_channel : (i_channel + 3)],
+                    curr_src_imgs[:, i*3:(i+1)*3],
                     pred_depthes[ns],
                     pred_poses[i],
                     intrinsics[:, ns])

@@ -46,11 +46,10 @@ def parse_args():
     args = parser.parse_args()
     config = yaml.load(open(args.config))
 
-    SEED = parse_dict(config, "seed", 0)
+    SEED = parse_dict(config, "seed", 8964)
     np.random.seed(SEED)
     if cp:
-        pass
-        # cp.random.seed(SEED)
+        cp.random.seed(SEED)
 
     if config["mode"] == "Test":
         chainer.global_config.train = False

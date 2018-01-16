@@ -12,7 +12,7 @@ model:
     download: # https://0000_model.npz
   architecture:
     smooth_reg: 0.5
-    exp_reg: 0.2
+    exp_reg: 0
 
 dataset:
   train:
