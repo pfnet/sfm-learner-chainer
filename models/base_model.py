@@ -91,12 +91,12 @@ class SFMLearner(chainer.Chain):
                 curr_proj_error = F.absolute(curr_proj_image - curr_tgt_img)
                 # Cross-entropy loss as regularization for the
                 # explainability prediction
-                if self.exp_reg > 0:
+                if self.exp_reg:
                     pred_exp_logits = pred_maskes[ns][:, i*2:(i+1)*2, :, :]
                     exp_loss += self.exp_reg * \
                                     self.compute_exp_reg_loss(pred_exp_logits)
                     pred_exp = F.softmax(pred_exp_logits)[:, 1:, :, :]
-                    pred_exp = F.broadcast_to(pred_exp, (batchsize, 3, H, W))
+                    pred_exp = F.broadcast_to(pred_exp, (batchsize, 3, *curr_img_size))
                     pixel_loss += F.mean(curr_proj_error * pred_exp)
                 else:
                     pixel_loss += F.mean(curr_proj_error)

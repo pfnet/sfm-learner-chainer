@@ -11,7 +11,7 @@ model:
     path: # 0000_model.npz
     download: # https://0000_model.npz
   architecture:
-    smooth_reg: 0
+    smooth_reg: 1
     exp_reg: 1
 
 dataset:
@@ -19,7 +19,7 @@ dataset:
     module: datasets.kitti.kitti_raw_dataset
     name: KittiRawDataset
     args:
-      data_dir: /mnt/sakuradata10-striped/datasets/KITTI_formatted
+      data_dir: ../dataset/KITTI_formatted
       # data_dir: /home/user/.chainer/dataset/pfnet/chainer/raw
       split: train
       seq_len: 3
@@ -28,7 +28,7 @@ dataset:
     module: datasets.kitti.kitti_raw_dataset
     name: KittiRawDataset
     args:
-      data_dir: /mnt/sakuradata10-striped/datasets/KITTI_formatted
+      data_dir: ../dataset/KITTI_formatted
       # data_dir: /home/user/.chainer/dataset/pfnet/chainer/raw
       split: val
       seq_len: 3

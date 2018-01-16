@@ -10,14 +10,14 @@ class PoseNet(chainer.Chain):
         self.activation = activtion
         self.n_sources = n_sources
         with self.init_scope():
-            self.c1 = L.Convolution2D(None, 16, ksize=8, stride=2, pad=3)
-            self.c2 = L.Convolution2D(None, 32, ksize=6, stride=2, pad=2)
-            self.c3 = L.Convolution2D(None, 64, ksize=4, stride=2, pad=1)
-            self.c4 = L.Convolution2D(None, 128, ksize=4, stride=2, pad=1)
-            self.c5 = L.Convolution2D(None, 256, ksize=4, stride=2, pad=1)
+            self.c1 = L.Convolution2D(None, 16, ksize=7, stride=2, pad=3)
+            self.c2 = L.Convolution2D(None, 32, ksize=5, stride=2, pad=2)
+            self.c3 = L.Convolution2D(None, 64, ksize=3, stride=2, pad=1)
+            self.c4 = L.Convolution2D(None, 128, ksize=3, stride=2, pad=1)
+            self.c5 = L.Convolution2D(None, 256, ksize=3, stride=2, pad=1)
 
-            self.pose1 = L.Convolution2D(None, 256, ksize=4, stride=2, pad=1)
-            self.pose2 = L.Convolution2D(None, 256, ksize=4, stride=2, pad=1)
+            self.pose1 = L.Convolution2D(None, 256, ksize=3, stride=2, pad=1)
+            self.pose2 = L.Convolution2D(None, 256, ksize=3, stride=2, pad=1)
             self.poseout = L.Convolution2D(None, self.n_sources * 6, ksize=1, stride=1, pad=0)
 
             self.exp5 = L.Deconvolution2D(None, 256, ksize=4, stride=2, pad=1)
@@ -26,9 +26,9 @@ class PoseNet(chainer.Chain):
             self.exp3 = L.Deconvolution2D(None, 64, ksize=4, stride=2, pad=1)
             self.expout3 = L.Convolution2D(None, self.n_sources * 2, ksize=3, pad=1)
             self.exp2 = L.Deconvolution2D(None, 32, ksize=6, stride=2, pad=2)
-            self.expout2 = L.Convolution2D(None, self.n_sources * 2, ksize=3, pad=2)
+            self.expout2 = L.Convolution2D(None, self.n_sources * 2, ksize=5, pad=2, stride=1)
             self.exp1 = L.Deconvolution2D(None, 32, ksize=6, stride=2, pad=2)
-            self.expout1 = L.Convolution2D(None, self.n_sources * 2, ksize=3, pad=3)
+            self.expout1 = L.Convolution2D(None, self.n_sources * 2, ksize=7, pad=3, stride=1)
 
     def encode(self, x):
         normalizer = lambda z: z
