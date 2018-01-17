@@ -83,12 +83,12 @@ class SFMLearner(chainer.Chain):
 
             for i in range(n_sources):
                 # Inverse warp the source image to the target image frame
-                curr_proj_image = transform(
+                curr_proj_img = transform(
                     curr_src_imgs[:, i*3:(i+1)*3],
                     pred_depthes[ns],
                     pred_poses[i],
                     intrinsics[:, ns])
-                curr_proj_error = F.absolute(curr_proj_image - curr_tgt_img)
+                curr_proj_error = F.absolute(curr_proj_img - curr_tgt_img)
                 # Cross-entropy loss as regularization for the
                 # explainability prediction
                 if self.exp_reg:

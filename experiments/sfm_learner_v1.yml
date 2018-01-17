@@ -1,6 +1,6 @@
 end_trigger: [200000, "iteration"] # 3200 / 16 = 200 * 150 = 30000
 results: results
-gpus: [1]
+gpus: # [1]
 mode: Train
 seed: 1
 

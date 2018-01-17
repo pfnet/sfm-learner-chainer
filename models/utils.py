@@ -30,7 +30,7 @@ def euler2mat(r, xp=np):
     rotx_2 = F.concat((zeros, cos_r[:, 0, :], -sin_r[:, 0, :]), axis=2)
     rotx_3 = F.concat((zeros, sin_r[:, 0, :], cos_r[:, 0, :]), axis=2)
     xmat = F.concat((rotx_1, rotx_2, rotx_3), axis=1)
-    
+
     rotMat = F.matmul(F.matmul(xmat, ymat), zmat)
     return rotMat
 
@@ -60,18 +60,22 @@ def pixel2cam(depthes, pixel_coords, intrinsics, xp=np):
     depthes = F.broadcast_to(F.reshape(depthes, (N, 1, -1)), (N, 3, H*W))
     cam_coords = depthes * cam_coords
     cam_coords = F.concat((cam_coords, xp.ones((N, 1, H * W), dtype='f')), axis=1)
-    return cam_coords.reshape(N, -1, H, W) 
+    return cam_coords.reshape(N, -1, H, W)
 
 def cam2pixel(cam_coords, proj):
     N, _, H, W = cam_coords.shape
     cam_coords = F.reshape(cam_coords, (N, 4, -1))
-    unnormalized_pixel_coords = F.matmul(proj, cam_coords)    
+    unnormalized_pixel_coords = F.matmul(proj, cam_coords)
     p_s_xy = unnormalized_pixel_coords[:, 0:2, :]
     p_s_xy /= F.broadcast_to(unnormalized_pixel_coords[:, 2:3, :], p_s_xy.shape) + 1e-10
     p_s_xy = F.reshape(p_s_xy, (N, 2, H, W))
     return p_s_xy
 
 def generate_2dmeshgrid(H, W, xp=np):
+    """Generate 2d meshgrid.
+       Range of values is [-1, 1] because input range of bilinear interpolation
+       is [-1, 1].
+    """
     ys, xs = xp.meshgrid(
         xp.linspace(-1, 1, H, dtype=np.float32),
         xp.linspace(-1, 1, W, dtype=np.float32), indexing='ij',
