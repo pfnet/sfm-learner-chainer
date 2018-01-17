@@ -43,7 +43,7 @@ class KittiRawDataset(dataset.DatasetMixin):
             intrinsics = np.genfromtxt(calib_path, delimiter=',')
             intrinsics = intrinsics.astype(np.float32).reshape((3, 3))
             imgs = glob.glob(os.path.join(dir_path, '*.jpg'))
-            sorted(imgs)
+            imgs.sort()
             if len(imgs) < self.seq_len:
                 continue
             for i in range(demi_len, len(imgs)-demi_len):
@@ -58,6 +58,14 @@ class KittiRawDataset(dataset.DatasetMixin):
 
     def __len__(self):
         return len(self.samples)
+
+    def save_img(self, tgt_img, ref_imgs):
+        import cv2
+        print('tgt path', sample['tgt'])
+        print('src pathes', sample['ref_imgs'])
+        cv2.imwrite('tgt.png', tgt_img.transpose(2, 1, 0).astype('i'))
+        cv2.imwrite('src1.png', ref_imgs[0].transpose(2, 1, 0).astype('i'))
+        cv2.imwrite('src2.png', ref_imgs[1].transpose(2, 1, 0).astype('i'))
 
     def get_example(self, i):
         sample = self.samples[i]

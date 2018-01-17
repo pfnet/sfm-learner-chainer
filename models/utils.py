@@ -52,22 +52,46 @@ def pose_vec2mat(vec, xp):
     transform_mat = F.hstack((transform_mat, filler))
     return transform_mat
 
-def pixel2cam(depthes, pixel_coords, intrinsics, xp=np):
-    N, _, H, W = depthes.shape
+def pixel2cam2(depthes, pixel_coords, intrinsics, im_shape, xp=np):
+    N, _, H, W = im_shape
+    pixel_coords[0] = (pixel_coords[0] + 1) * 0.5 * (W - 1)
+    pixel_coords[1] = (pixel_coords[1] + 1) * 0.5 * (H - 1)
     cam_coords = F.matmul(F.batch_inv(intrinsics),
                           xp.broadcast_to(pixel_coords.reshape(1, 3, H*W),
                                           (N, 3, H*W)))
     depthes = F.broadcast_to(F.reshape(depthes, (N, 1, -1)), (N, 3, H*W))
     cam_coords = depthes * cam_coords
-    cam_coords = F.concat((cam_coords, xp.ones((N, 1, H * W), dtype='f')), axis=1)
-    return cam_coords.reshape(N, -1, H, W)
+    cam_coords = F.concat((cam_coords, xp.ones((N, 1, H * W), 'f')), axis=1)
+    return cam_coords
 
-def cam2pixel(cam_coords, proj):
-    N, _, H, W = cam_coords.shape
-    cam_coords = F.reshape(cam_coords, (N, 4, -1))
+def cam2pixel2(cam_coords, proj, im_shape):
+    N, _, H, W = im_shape
     unnormalized_pixel_coords = F.matmul(proj, cam_coords)
     p_s_xy = unnormalized_pixel_coords[:, 0:2, :]
-    p_s_xy /= F.broadcast_to(unnormalized_pixel_coords[:, 2:3, :], p_s_xy.shape) + 1e-10
+    p_s_xy /= F.broadcast_to(unnormalized_pixel_coords[:, 2:3, :],
+                             p_s_xy.shape) + 1e-10
+    p_s_x = p_s_xy[:, 0:1] / (W - 1) * 2 - 1
+    p_s_y = p_s_xy[:, 1:2] / (H - 1) * 2 - 1
+    p_s_xy = F.concat((p_s_x, p_s_y), axis=1)
+    p_s_xy = F.reshape(p_s_xy, (N, 2, H, W))
+    return p_s_xy
+
+def pixel2cam(depthes, pixel_coords, intrinsics, im_shape, xp=np):
+    N, _, H, W = im_shape
+    cam_coords = F.matmul(F.batch_inv(intrinsics),
+                          xp.broadcast_to(pixel_coords.reshape(1, 3, H*W),
+                                          (N, 3, H*W)))
+    depthes = F.broadcast_to(F.reshape(depthes, (N, 1, -1)), (N, 3, H*W))
+    cam_coords = depthes * cam_coords
+    cam_coords = F.concat((cam_coords, xp.ones((N, 1, H * W), 'f')), axis=1)
+    return cam_coords
+
+def cam2pixel(cam_coords, proj, im_shape):
+    N, _, H, W = im_shape
+    unnormalized_pixel_coords = F.matmul(proj, cam_coords)
+    p_s_xy = unnormalized_pixel_coords[:, 0:2, :]
+    p_s_xy /= F.broadcast_to(unnormalized_pixel_coords[:, 2:3, :], 
+                             p_s_xy.shape) + 1e-10
     p_s_xy = F.reshape(p_s_xy, (N, 2, H, W))
     return p_s_xy
 

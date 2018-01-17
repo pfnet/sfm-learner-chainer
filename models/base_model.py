@@ -7,12 +7,11 @@ import os
 import sys
 import subprocess
 import time
-
 try:
     import matplotlib.pyplot as plt
 except:
     pass
-
+import cv2
 import chainer
 import chainer.functions as F
 import chainer.links as L
@@ -88,6 +87,7 @@ class SFMLearner(chainer.Chain):
                     pred_depthes[ns],
                     pred_poses[i],
                     intrinsics[:, ns])
+
                 curr_proj_error = F.absolute(curr_proj_img - curr_tgt_img)
                 # Cross-entropy loss as regularization for the
                 # explainability prediction
@@ -100,7 +100,6 @@ class SFMLearner(chainer.Chain):
                     pixel_loss += F.mean(curr_proj_error * pred_exp)
                 else:
                     pixel_loss += F.mean(curr_proj_error)
-
         total_loss = pixel_loss + smooth_loss + exp_loss
         chainer.report({'total_loss': total_loss}, self)
         chainer.report({'pixel_loss': pixel_loss}, self)
