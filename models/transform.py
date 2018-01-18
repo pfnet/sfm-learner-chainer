@@ -36,8 +36,7 @@ def transform(imgs, depthes, poses, K):
 
     # TODO
     src_pixel_coords = cam2pixel(cam_coords, proj_tgt_cam_to_src_pixel, im_shape)
-
-
+    """
     hoge = utils.generate_2dmeshgrid(H, W, xp)
     cam_coords2 = pixel2cam2(depthes, hoge, K, im_shape, xp=xp)
     filler = xp.tile(xp.asarray([0.0, 0.0, 0.0, 1.0], 'f').reshape(1, 1, 4),
@@ -45,6 +44,7 @@ def transform(imgs, depthes, poses, K):
     K_ = F.concat([F.concat([K, xp.zeros([N, 3, 1], 'f')], axis=2), filler], axis=1)
     proj_tgt_cam_to_src_pixel = F.matmul(K_, poses)
     src_pixel_coords2 = cam2pixel2(cam_coords2, proj_tgt_cam_to_src_pixel, im_shape)
+    """
     # print((src_pixel_coords.data == src_pixel_coords2.data).all())
     # print(src_pixel_coords.data[0, :, :2, :2])
     # print(src_pixel_coords2.data[0, :, :2, :2])

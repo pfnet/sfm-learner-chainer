@@ -68,7 +68,8 @@ class SFMLearner(chainer.Chain):
         stacked_src_imgs = self.xp.reshape(src_imgs, (batchsize, -1, H, W))
         pred_disps = self.disp_net(tgt_img)
         pred_depthes = [1 / d for d in pred_disps]
-        pred_poses, pred_maskes = self.pose_net(tgt_img, stacked_src_imgs)
+        do_exp = self.exp_reg is not None and self.exp_reg > 0
+        pred_poses, pred_maskes = self.pose_net(tgt_img, stacked_src_imgs, do_exp)
         smooth_loss, exp_loss, pixel_loss = 0, 0, 0
         n_scales = len(pred_depthes)
         for ns in range(n_scales):

@@ -27,7 +27,7 @@ class PoseNet(chainer.Chain):
             self.expout3 = L.Convolution2D(None, self.n_sources * 2, ksize=3, pad=1)
             self.exp2 = L.Deconvolution2D(None, 32, ksize=6, stride=2, pad=2)
             self.expout2 = L.Convolution2D(None, self.n_sources * 2, ksize=5, pad=2, stride=1)
-            self.exp1 = L.Deconvolution2D(None, 32, ksize=6, stride=2, pad=2)
+            self.exp1 = L.Deconvolution2D(None, 16, ksize=6, stride=2, pad=2)
             self.expout1 = L.Convolution2D(None, self.n_sources * 2, ksize=7, pad=3, stride=1)
 
     def encode(self, x):
@@ -78,4 +78,4 @@ class PoseNet(chainer.Chain):
             masks = self.pred_expalanation(h)
             return poses, masks
         else:
-            return poses
+            return poses, None

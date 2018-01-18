@@ -20,19 +20,19 @@ class DispNet(chainer.Chain):
         self.activation = activation
         with self.init_scope():
             # Deep...
-            self.c1 = L.Convolution2D(None, 32, ksize=8, stride=2, pad=3)
+            self.c1 = L.Convolution2D(None, 32, ksize=7, stride=2, pad=3)
             self.c1b = L.Convolution2D(None, 32, ksize=7, stride=1, pad=3)
-            self.c2 = L.Convolution2D(None, 64, ksize=6, stride=2, pad=2)
+            self.c2 = L.Convolution2D(None, 64, ksize=5, stride=2, pad=2)
             self.c2b = L.Convolution2D(None, 64, ksize=5, stride=1, pad=2)
-            self.c3 = L.Convolution2D(None, 128, ksize=4, stride=2, pad=1)
+            self.c3 = L.Convolution2D(None, 128, ksize=3, stride=2, pad=1)
             self.c3b = L.Convolution2D(None, 128, ksize=3, stride=1, pad=1)
-            self.c4 = L.Convolution2D(None, 256, ksize=4, stride=2, pad=1)
+            self.c4 = L.Convolution2D(None, 256, ksize=3, stride=2, pad=1)
             self.c4b = L.Convolution2D(None, 256, ksize=3, stride=1, pad=1)
-            self.c5 = L.Convolution2D(None, 512, ksize=4, stride=2, pad=1)
+            self.c5 = L.Convolution2D(None, 512, ksize=3, stride=2, pad=1)
             self.c5b = L.Convolution2D(None, 512, ksize=3, stride=1, pad=1)
-            self.c6 = L.Convolution2D(None, 512, ksize=4, stride=2, pad=1)
+            self.c6 = L.Convolution2D(None, 512, ksize=3, stride=2, pad=1)
             self.c6b = L.Convolution2D(None, 512, ksize=3, stride=1, pad=1)
-            self.c7 = L.Convolution2D(None, 512, ksize=4, stride=2, pad=1)
+            self.c7 = L.Convolution2D(None, 512, ksize=3, stride=2, pad=1)
             self.c7b = L.Convolution2D(None, 512, ksize=3, stride=1, pad=1)
 
             self.dc7 = L.Deconvolution2D(None, 512, ksize=4, stride=2, pad=1)
