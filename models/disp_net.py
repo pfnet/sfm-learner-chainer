@@ -19,7 +19,6 @@ class DispNet(chainer.Chain):
         super(DispNet, self).__init__()
         self.activation = activation
         with self.init_scope():
-            # Deep...
             self.c1 = L.Convolution2D(None, 32, ksize=7, stride=2, pad=3)
             self.c1b = L.Convolution2D(None, 32, ksize=7, stride=1, pad=3)
             self.c2 = L.Convolution2D(None, 64, ksize=5, stride=2, pad=2)
