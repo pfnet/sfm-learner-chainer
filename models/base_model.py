@@ -158,7 +158,8 @@ class SFMLearner(chainer.Chain):
             batchsize, n_sources, _, H, W = src_imgs.shape # tgt_img.shape
             stacked_src_imgs = self.xp.reshape(src_imgs, (batchsize, -1, H, W))
             pred_depth = 1 / self.disp_net(tgt_img)[0]
-            pred_pose, pred_maskes = self.pose_net(tgt_img, stacked_src_imgs)
+            pred_pose, pred_maskes = self.pose_net(tgt_img, stacked_src_imgs,
+                                                   do_exp=True)
             pred_mask = pred_maskes[0]
             # #print_timer(#start, stop, sentence="Inference Time")
-            return pred_depth, pred_pose, pred_maskes
+            return pred_depth, pred_pose, pred_mask

@@ -10,7 +10,7 @@ from scipy.misc import imread
 from chainer import dataset
 
 def load_as_float_norm(path):
-    img = imread(path).astype(np.float32).transpose(2, 1, 0)
+    img = imread(path).astype(np.float32).transpose(2, 0, 1)
     return img / (255. * 0.5) - 1
 
 class KittiRawDataset(dataset.DatasetMixin):
@@ -63,9 +63,9 @@ class KittiRawDataset(dataset.DatasetMixin):
         import cv2
         print('tgt path', sample['tgt'])
         print('src pathes', sample['ref_imgs'])
-        cv2.imwrite('tgt.png', tgt_img.transpose(2, 1, 0).astype('i'))
-        cv2.imwrite('src1.png', ref_imgs[0].transpose(2, 1, 0).astype('i'))
-        cv2.imwrite('src2.png', ref_imgs[1].transpose(2, 1, 0).astype('i'))
+        cv2.imwrite('tgt.png', tgt_img.transpose(1, 2, 0).astype('i'))
+        cv2.imwrite('src1.png', ref_imgs[0].transpose(1, 2, 0).astype('i'))
+        cv2.imwrite('src2.png', ref_imgs[1].transpose(1, 2, 0).astype('i'))
 
     def get_example(self, i):
         sample = self.samples[i]
