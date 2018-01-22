@@ -18,33 +18,36 @@ class PoseNet(chainer.Chain):
 
             self.pose1 = L.Convolution2D(None, 256, ksize=3, stride=2, pad=1)
             self.pose2 = L.Convolution2D(None, 256, ksize=3, stride=2, pad=1)
-            self.poseout = L.Convolution2D(None, self.n_sources * 6, ksize=1, stride=1, pad=0)
+            self.poseout = L.Convolution2D(None, self.n_sources * 6, ksize=1,
+                                           stride=1, pad=0)
 
             self.exp5 = L.Deconvolution2D(None, 256, ksize=4, stride=2, pad=1)
             self.exp4 = L.Deconvolution2D(None, 128, ksize=4, stride=2, pad=1)
-            self.expout4 = L.Convolution2D(None, self.n_sources * 2, ksize=3, pad=1)
+            self.expout4 = L.Convolution2D(None, self.n_sources, ksize=3,
+                                           pad=1)
             self.exp3 = L.Deconvolution2D(None, 64, ksize=4, stride=2, pad=1)
-            self.expout3 = L.Convolution2D(None, self.n_sources * 2, ksize=3, pad=1)
+            self.expout3 = L.Convolution2D(None, self.n_sources, ksize=3,
+                                           pad=1)
             self.exp2 = L.Deconvolution2D(None, 32, ksize=6, stride=2, pad=2)
-            self.expout2 = L.Convolution2D(None, self.n_sources * 2, ksize=5, pad=2, stride=1)
+            self.expout2 = L.Convolution2D(None, self.n_sources, ksize=5,
+                                           pad=2, stride=1)
             self.exp1 = L.Deconvolution2D(None, 16, ksize=6, stride=2, pad=2)
-            self.expout1 = L.Convolution2D(None, self.n_sources * 2, ksize=7, pad=3, stride=1)
+            self.expout1 = L.Convolution2D(None, self.n_sources, ksize=7,
+                                           pad=3, stride=1)
 
     def encode(self, x):
-        normalizer = lambda z: z
         h = x
-        h = self.activation(normalizer(self.c1(h)))
-        h = self.activation(normalizer(self.c2(h)))
-        h = self.activation(normalizer(self.c3(h)))
-        h = self.activation(normalizer(self.c4(h)))
-        h = self.activation(normalizer(self.c5(h)))
+        h = self.activation(self.c1(h))
+        h = self.activation(self.c2(h))
+        h = self.activation(self.c3(h))
+        h = self.activation(self.c4(h))
+        h = self.activation(self.c5(h))
         return h
 
     def pred_pose(self, x):
-        normalizer = lambda z: z
         h = x
-        h = self.activation(normalizer(self.pose1(h)))
-        h = self.activation(normalizer(self.pose2(h)))
+        h = self.activation(self.pose1(h))
+        h = self.activation(self.pose2(h))
         h = self.poseout(h)
         # Empirically the authors found that scaling by a small constant
         # facilitates training.
@@ -53,16 +56,15 @@ class PoseNet(chainer.Chain):
         return h
 
     def pred_expalanation(self, x):
-        normalizer = lambda z: z
         h = x
-        h = self.activation(normalizer(self.exp5(h)))
-        h = self.activation(normalizer(self.exp4(h)))
+        h = self.activation(self.exp5(h))
+        h = self.activation(self.exp4(h))
         mask4 = self.expout4(h)
-        h = self.activation(normalizer(self.exp3(h)))
+        h = self.activation(self.exp3(h))
         mask3 = self.expout3(h)
-        h = self.activation(normalizer(self.exp2(h)))
+        h = self.activation(self.exp2(h))
         mask2 = self.expout2(h)
-        h = self.activation(normalizer(self.exp1(h)))
+        h = self.activation(self.exp1(h))
         mask1 = self.expout1(h)
         return [mask1, mask2, mask3, mask4]
 

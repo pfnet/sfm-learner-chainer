@@ -1,6 +1,6 @@
 end_trigger: [200000, "iteration"] # 3200 / 16 = 200 * 150 = 30000
-results: results
-gpus: [1]
+results: results/basic
+gpus: [0]
 mode: Train
 seed: 1
 
@@ -12,7 +12,7 @@ model:
     download: # https://0000_model.npz
   architecture:
     smooth_reg: 0.5
-    exp_reg: 0
+    exp_reg: 0.
 
 dataset:
   train:
@@ -38,13 +38,13 @@ updater:
   name: StandardUpdater
 
 iterator:
-  name: SerialIterator #MultiprocessIterator
+  name: MultiprocessIterator
   train_batchsize: 4
   test_batchsize: 4
-  #args:
-  #  n_processes: 4
-  #  n_prefetch: 1
-  #  shared_mem: 60000000
+  args:
+   n_processes: 4
+   n_prefetch: 2
+   shared_mem: 60000000
 
 optimizer:
   name: Adam
@@ -52,6 +52,8 @@ optimizer:
     alpha: 0.0002
     beta1: 0.9
     beta2: 0.999
+  hook:
+    WeightDecay: 0.0002
 
 extension:
   #Evaluator:

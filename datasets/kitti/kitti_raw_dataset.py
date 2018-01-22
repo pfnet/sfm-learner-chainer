@@ -11,7 +11,7 @@ from chainer import dataset
 
 def load_as_float_norm(path):
     img = imread(path).astype(np.float32).transpose(2, 1, 0)
-    return (img / 255.) * 2 - 1
+    return img / (255. * 0.5) - 1
 
 class KittiRawDataset(dataset.DatasetMixin):
 

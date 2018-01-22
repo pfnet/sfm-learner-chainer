@@ -16,24 +16,10 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 from chainer import Variable
-from models.transform import transform
+from models.transform import projective_inverse_warp
 from models.pose_net import PoseNet
 from models.disp_net import DispNet
-
-def create_timer():
-    start = chainer.cuda.Event()
-    stop = chainer.cuda.Event()
-    start.synchronize()
-    start.record()
-    return start, stop
-
-def print_timer(start, stop, sentence="Time"):
-    stop.record()
-    stop.synchronize()
-    elapsed_time = chainer.cuda.cupy.cuda.get_elapsed_time(
-                           start, stop) / 1000
-    print(sentence, elapsed_time)
-    return elapsed_time
+from models.utils import *
 
 
 class SFMLearner(chainer.Chain):
@@ -64,43 +50,70 @@ class SFMLearner(chainer.Chain):
            Return:
                loss (Variable).
         """
-        batchsize, n_sources, _, H, W = src_imgs.shape # tgt_img.shape
+        # all_start, all_stop = create_timer()
+        batchsize, n_sources, _, H, W = src_imgs.shape
         stacked_src_imgs = self.xp.reshape(src_imgs, (batchsize, -1, H, W))
+        #start, stop = create_timer()
         pred_disps = self.disp_net(tgt_img)
-        pred_depthes = [1 / d for d in pred_disps]
+        #print_timer(start, stop, 'depth')
+        pred_depthes = [1. / d for d in pred_disps]
         do_exp = self.exp_reg is not None and self.exp_reg > 0
-        pred_poses, pred_maskes = self.pose_net(tgt_img, stacked_src_imgs, do_exp)
+        #start, stop = create_timer()
+        pred_poses, pred_maskes = self.pose_net(tgt_img, stacked_src_imgs,
+                                                do_exp=do_exp)
+        #print_timer(start, stop, 'pose')
         smooth_loss, exp_loss, pixel_loss = 0, 0, 0
         n_scales = len(pred_depthes)
+        start, stop = create_timer()
+        sum_time = 0
         for ns in range(n_scales):
+            # start2, stop2 = create_timer()
             curr_img_size = (H // (2 ** ns), W // (2 ** ns))
             curr_tgt_img = F.resize_images(tgt_img, curr_img_size)
             curr_src_imgs = F.resize_images(stacked_src_imgs, curr_img_size)
 
+            curr_pred_depthes = pred_depthes[ns]
+            # Smoothness regularization
             if self.smooth_reg:
-                smooth_loss += self.smooth_reg / (2 ** ns) * \
-                                   self.compute_smooth_loss(pred_disps[ns])
-
+                # start3, stop3 = create_timer()
+                smooth_loss += (self.smooth_reg / (2 ** ns)) * \
+                                   self.compute_smooth_loss(curr_pred_depthes)
+                # print_timer(start3, stop3, 'smooth')
+            curr_pred_depthes = F.reshape(curr_pred_depthes, (batchsize, 1, -1))
+            curr_pred_depthes = F.broadcast_to(curr_pred_depthes,
+                                               (batchsize, 3, curr_pred_depthes.shape[2]))
+            curr_intrinsics = intrinsics[:, ns]
+            if self.exp_reg:
+                curr_pred_mask = pred_maskes[ns]
+            # print_timer(start2, stop2, 'prepare')
+            # start3, stop3 = create_timer()
             for i in range(n_sources):
                 # Inverse warp the source image to the target image frame
-                curr_proj_img = transform(
+                # start2, stop2 = create_timer()
+                curr_proj_img = projective_inverse_warp(
                     curr_src_imgs[:, i*3:(i+1)*3],
-                    pred_depthes[ns],
+                    curr_pred_depthes,
                     pred_poses[i],
-                    intrinsics[:, ns])
-
+                    curr_intrinsics)
+                # sum_time += print_timer(start2, stop2, None)
                 curr_proj_error = F.absolute(curr_proj_img - curr_tgt_img)
-                # Cross-entropy loss as regularization for the
-                # explainability prediction
+                curr_proj_error *= (curr_proj_img.data != 0.)
+                # explainability regularization
                 if self.exp_reg:
-                    pred_exp_logits = pred_maskes[ns][:, i*2:(i+1)*2, :, :]
+                    pred_exp_logits = curr_pred_mask[:, i:i+1, :, :]
                     exp_loss += self.exp_reg * \
                                     self.compute_exp_reg_loss(pred_exp_logits)
-                    pred_exp = F.softmax(pred_exp_logits)[:, 1:, :, :]
+                    pred_exp = F.sigmoid(pred_exp_logits)
                     pred_exp = F.broadcast_to(pred_exp, (batchsize, 3, *curr_img_size))
                     pixel_loss += F.mean(curr_proj_error * pred_exp)
                 else:
                     pixel_loss += F.mean(curr_proj_error)
+            # print_timer(start3, stop3, 'sources')
+        # print(pixel_loss)
+        # print("############## summary #############")
+        # print_timer(start, stop, 'for')
+        # print("Sum transform", sum_time)
+        # print_timer(all_start, all_stop,'ALL')
         total_loss = pixel_loss + smooth_loss + exp_loss
         chainer.report({'total_loss': total_loss}, self)
         chainer.report({'pixel_loss': pixel_loss}, self)
@@ -116,8 +129,8 @@ class SFMLearner(chainer.Chain):
         """
         p_shape = pred.shape
         label = self.xp.ones((p_shape[0] * p_shape[2] * p_shape[3],), dtype='i')
-        l = F.softmax_cross_entropy(
-            F.reshape(pred, (-1, 2)), label)
+        l = F.sigmoid_cross_entropy(
+            F.reshape(pred, (-1, )), label, reduce='no')
         return F.mean(l)
 
     def compute_smooth_loss(self, pred_disp):
@@ -128,7 +141,7 @@ class SFMLearner(chainer.Chain):
                pred_disp: Shape is (Batch, 1, H, W)
         """
         def gradient(pred):
-            D_dy = pred[:, :, 1:, :] - pred[:, :, :-1, :]
+            D_dy = pred[:, :, 1:] - pred[:, :, :-1]
             D_dx = pred[:, :, :, 1:] - pred[:, :, :, :-1]
             return D_dx, D_dy
 
@@ -141,11 +154,11 @@ class SFMLearner(chainer.Chain):
     def inference(self, tgt_img, src_imgs, intrinsics, inv_intrinsics):
         with chainer.using_config('train', False), \
                  chainer.function.no_backprop_mode():
-            start, stop = create_timer()
+            # #start, stop = create_timer()
             batchsize, n_sources, _, H, W = src_imgs.shape # tgt_img.shape
             stacked_src_imgs = self.xp.reshape(src_imgs, (batchsize, -1, H, W))
             pred_depth = 1 / self.disp_net(tgt_img)[0]
             pred_pose, pred_maskes = self.pose_net(tgt_img, stacked_src_imgs)
             pred_mask = pred_maskes[0]
-            print_timer(start, stop, sentence="Inference Time")
+            # #print_timer(#start, stop, sentence="Inference Time")
             return pred_depth, pred_pose, pred_maskes
