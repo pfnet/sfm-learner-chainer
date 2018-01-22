@@ -1,0 +1,38 @@
+end_trigger: [200000, "iteration"] # 3200 / 16 = 200 * 150 = 30000
+results: results/inference
+gpus: [0]
+mode: Test
+seed: 1
+
+model:
+  module: models.base_model
+  name: SFMLearner
+  pretrained_model:
+    path: # 0000_model.npz
+    download: # https://0000_model.npz
+  architecture:
+    smooth_reg: 0.
+    exp_reg: 0.
+
+dataset:
+  test:
+    module: datasets.kitti.kitti_raw_dataset
+    name: KittiRawDataset
+    args:
+      data_dir: ../dataset/KITTI_formatted
+      # data_dir: /home/user/.chainer/dataset/pfnet/chainer/raw
+      split: val
+      seq_len: 3
+
+updater:
+  name: StandardUpdater
+
+iterator:
+  name: SerialIterator #MultiprocessIterator
+  train_batchsize: 4
+  test_batchsize: 4
+  #args:
+  #  n_processes: 4
+  #  n_prefetch: 1
+  #  shared_mem: 60000000
+
