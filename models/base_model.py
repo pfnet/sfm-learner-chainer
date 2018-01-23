@@ -97,7 +97,7 @@ class SFMLearner(chainer.Chain):
                     curr_intrinsics)
                 # sum_time += print_timer(start2, stop2, None)
                 curr_proj_error = F.absolute(curr_proj_img - curr_tgt_img)
-                curr_proj_error *= (curr_proj_img.data != 0.)
+                # curr_proj_error *= (curr_proj_img.data != 0.)
                 # explainability regularization
                 if self.exp_reg:
                     pred_exp_logits = curr_pred_mask[:, i:i+1, :, :]
