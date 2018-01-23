@@ -6,7 +6,10 @@ import numpy as np
 import os
 import random
 from scipy.misc import imread
-
+from collections import Counter
+from tqdm import tqdm
+import datetime
+from chainer import functions as F
 from chainer import dataset
 
 def load_as_float_norm(path):
@@ -24,7 +27,9 @@ class KittiDepthEvaluation(dataset.DatasetMixin):
         split ({'train', 'val'}): Select from dataset splits used in
             KiTTi Raw Dataset.
     """
-    def __init__(self, data_dir=None, test_files=None, seq_len=3, split='train'):
+    def __init__(self, data_dir=None, test_files=None, seq_len=3, split='train',
+                 height=128, width=416, resize=True, 
+                 min_depth=1e-3, max_depth=80):
         with open(os.path.join(test_files), 'r') as f:
             file_pathes = f.read().split('\n')
 
@@ -34,6 +39,11 @@ class KittiDepthEvaluation(dataset.DatasetMixin):
         self.seq_len = seq_len
         self.demi_len = (self.seq_len - 1) // 2
         self.read_scene_data()
+        self.height = height
+        self.width = width
+        self.resize = resize
+        self.min_depth = float(min_depth)
+        self.max_depth = float(max_depth)
 
     def read_scene_data(self):
         self.calib_dir_list, self.velo_file_list = [], []
@@ -46,11 +56,12 @@ class KittiDepthEvaluation(dataset.DatasetMixin):
             img_dir = os.path.join(scene_dir, cam_id, 'data')
             tgt_img_path = os.path.join(img_dir, '{}.png'.format(index))
             src_imgs_path = [os.path.join(img_dir, '{:010d}.png'.format(int(index) + si)) for si in src_iter]
-            velo_path = [os.path.join(scene_dir, 'velodyne_points/data/{}.bin'.format(index))]
-            self.calib_dir_list.append(os.path.join(self.base_dir, date))
-            self.velo_file_list.append(velo_path)
-            self.imgs_file_list.append([tgt_img_path, src_imgs_path])
-            self.cams.append(int(cam_id[-2:]))
+            velo_path = os.path.join(scene_dir, 'velodyne_points/data/{}.bin'.format(index))
+            if int(index) != 0 and os.path.exists(src_imgs_path[-1]):
+                self.calib_dir_list.append(os.path.join(self.base_dir, date))
+                self.velo_file_list.append(velo_path)
+                self.imgs_file_list.append([tgt_img_path, src_imgs_path])
+                self.cams.append(int(cam_id[-2:]))
 
     def __len__(self):
         return len(self.imgs_file_list)
@@ -61,11 +72,15 @@ class KittiDepthEvaluation(dataset.DatasetMixin):
         tgt_img_path = imgs_path[0]
         src_imgs_path = imgs_path[1]
         velo_path = self.velo_file_list[i]
-        tgt_img = imread(tgt_img_path).astype('f')
-        src_imgs = [imread(path).astype('f') for path in src_imgs_path]
-        gt_depth = generate_depth_map(calib_dir, tgt_img, velo_path, tgt.shape[:2],
-                                   self.cams[i])
-        return tgt_img, ref_imgs, intrinsics, gt_depth
+        tgt_img = load_as_float_norm(tgt_img_path)
+        src_imgs = [load_as_float_norm(path) for path in src_imgs_path]
+        orig_shape = tgt_img.shape[:2]
+        gt_depth = generate_depth_map(calib_dir, velo_path, tgt_img.shape[1:],
+                                      self.cams[i])
+        tgt_img = F.resize_images(tgt_img[None], (self.height, self.width)).data[0]
+        src_imgs = F.resize_images(np.array(src_imgs, dtype='f'), (self.height, self.width)).data
+        mask = generate_mask(gt_depth, self.min_depth, self.max_depth)
+        return tgt_img, src_imgs, [], gt_depth, mask
 
 width_to_focal = dict()
 width_to_focal[1242] = 721.5377

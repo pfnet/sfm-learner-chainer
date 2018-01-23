@@ -3,6 +3,8 @@ results: results/eval
 gpus: [0]
 mode: Test
 seed: 1
+min_depth: 0.001
+max_depth: 80
 
 model:
   module: models.base_model
@@ -24,14 +26,15 @@ dataset:
       # data_dir: /home/user/.chainer/dataset/pfnet/chainer/raw
       split: train
       seq_len: 3
+      min_depth: 0.001
+      max_depth: 80
 
 updater:
   name: StandardUpdater
 
 iterator:
   name: SerialIterator
-  train_batchsize: 4
-  test_batchsize: 4
+  test_batchsize: 1
   # args:
   #  n_processes: 4
   #  n_prefetch: 2
