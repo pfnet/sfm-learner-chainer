@@ -1,5 +1,5 @@
 end_trigger: [200000, "iteration"]
-results: results/basic
+results: results/eval
 gpus: [1]
 mode: Test
 seed: 1
@@ -8,7 +8,7 @@ model:
   module: models.base_model
   name: SFMLearner
   pretrained_model:
-    path: ./results/basic1/voxelnet_140000
+    path: # model.npz
     download: # https://0000_model.npz
   architecture:
     smooth_reg: 0.
@@ -17,7 +17,7 @@ model:
 dataset:
   test:
     module: datasets.kitti.kitti_raw_transformed
-    name: KittiRawTransformed
+    name: KittiDepthEvaluation
     args:
       data_dir: ../dataset/KITTI_formatted
       # data_dir: /home/user/.chainer/dataset/pfnet/chainer/raw

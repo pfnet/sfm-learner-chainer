@@ -1,4 +1,4 @@
-end_trigger: [200000, "iteration"] # 3200 / 16 = 200 * 150 = 30000
+end_trigger: [200000, "iteration"]
 results: results/basic_no_mask
 gpus: [1]
 mode: Train

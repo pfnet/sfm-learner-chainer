@@ -151,15 +151,22 @@ class SFMLearner(chainer.Chain):
         return F.mean(F.absolute(dx2)) + F.mean(F.absolute(dxdy)) \
                + F.mean(F.absolute(dydx)) + F.mean(F.absolute(dy2))
 
-    def inference(self, tgt_img, src_imgs, intrinsics, inv_intrinsics):
+    def inference(self, tgt_img, src_imgs, intrinsics, inv_intrinsics,
+                  is_depth=True, is_pose=True, is_exp=True):
+        pred_depth, pred_pose, pred_mask = 0, 0, 0
         with chainer.using_config('train', False), \
                  chainer.function.no_backprop_mode():
             # #start, stop = create_timer()
             batchsize, n_sources, _, H, W = src_imgs.shape # tgt_img.shape
             stacked_src_imgs = self.xp.reshape(src_imgs, (batchsize, -1, H, W))
-            pred_depth = 1 / self.disp_net(tgt_img)[0]
-            pred_pose, pred_maskes = self.pose_net(tgt_img, stacked_src_imgs,
-                                                   do_exp=True)
-            pred_mask = pred_maskes[0]
+
+            if is_depth:
+                pred_depth = 1 / self.disp_net(tgt_img)[0]
+
+            if is_pose:
+                pred_pose, pred_maskes = self.pose_net(tgt_img,
+                                                       stacked_src_imgs,
+                                                       do_exp=is_exp)
+                pred_mask = pred_maskes[0]
             # #print_timer(#start, stop, sentence="Inference Time")
             return pred_depth, pred_pose, pred_mask

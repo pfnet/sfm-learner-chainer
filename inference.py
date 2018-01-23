@@ -23,9 +23,10 @@ from collections import OrderedDict
 yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
     lambda loader, node: OrderedDict(loader.construct_pairs(node)))
 
-def normalize_depth_for_display(depth, pc=95, crop_percent=0, normalizer=None, cmap='gray'):
-    # convert to disparity
-    depth = 1./(depth + 1e-6)
+def normalize_depth_for_display(disp, pc=95, crop_percent=0, normalizer=None,
+                                cmap='gray'):
+    """Convert disparity images to depth images."""
+    depth = 1./(disp + 1e-6)
     if normalizer is not None:
         depth = depth/normalizer
     else:
