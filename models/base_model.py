@@ -77,7 +77,7 @@ class SFMLearner(chainer.Chain):
             if self.smooth_reg:
                 # start3, stop3 = create_timer()
                 smooth_loss += (self.smooth_reg / (2 ** ns)) * \
-                                   self.compute_smooth_loss(curr_pred_depthes)
+                                   self.compute_smooth_loss(pred_disps[ns])
                 # print_timer(start3, stop3, 'smooth')
             curr_pred_depthes = F.reshape(curr_pred_depthes, (batchsize, 1, -1))
             curr_pred_depthes = F.broadcast_to(curr_pred_depthes,
@@ -97,7 +97,7 @@ class SFMLearner(chainer.Chain):
                     curr_intrinsics)
                 # sum_time += print_timer(start2, stop2, None)
                 curr_proj_error = F.absolute(curr_proj_img - curr_tgt_img)
-                curr_proj_error *= (curr_proj_img.data != 0.)
+                # curr_proj_error *= (curr_proj_img.data != 0.)
                 # explainability regularization
                 if self.exp_reg:
                     pred_exp_logits = curr_pred_mask[:, i:i+1, :, :]

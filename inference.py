@@ -12,6 +12,7 @@ import chainer
 from chainer import cuda, optimizers, serializers
 from chainer import training
 
+import cv2
 from config_utils import *
 import matplotlib.pyplot as plt
 
@@ -53,13 +54,16 @@ def demo_sfm_learner():
     model.to_gpu(devices['main'])
 
     dataset_config = config['dataset']['test']['args']
+    index = 0
     for batch in test_iter:
+        input_img = batch[0][0].transpose(1, 2, 0)
         batch = chainer.dataset.concat_examples(batch, devices['main'])
         pred_depth, pred_pose, pred_mask = model.inference(*batch)
         depth = chainer.cuda.to_cpu(pred_depth.data[0, 0])
         depth = normalize_depth_for_display(depth)
-        plt.imshow(depth)
-        plt.show()
+        cv2.imwrite("input_{}.png".format(index), (input_img + 1) / 2 * 255)
+        cv2.imwrite("depth_{}.png".format(index), depth * 255 )
+        index += 1
 
 def main():
     demo_sfm_learner()

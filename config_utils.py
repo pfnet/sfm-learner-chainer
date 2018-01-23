@@ -83,7 +83,7 @@ def create_extension(trainer, test_iter, model, config, devices=None):
         elif key == 'snapshot_object':
             cl = getattr(extensions, key)
             trigger = parse_trigger(ext['trigger'])
-            trainer.extend(cl(model, 'voxelnet_{.updater.iteration}'),
+            trainer.extend(cl(model, 'sfm_learner_{.updater.iteration}'),
                            trigger=trigger)
         elif key == 'LogReport':
             cl = getattr(extensions, key)
