@@ -15,7 +15,7 @@ def euler2mat(r, xp=np):
     Args:
         r: rotation angle(x, y, z). Shape is (N, 3).
     Returns:
-        Rotation matrix corresponding to the euler angles. Shape is (B, 3, 3).
+        Rotation matrix corresponding to the euler angles. Shape is (N, 3, 3).
     """
     batchsize = r.shape[0]
     # start, stop = create_timer()
@@ -96,7 +96,7 @@ def pixel2cam(depthes, pixel_coords, intrinsics, im_shape, xp=np):
     """Converter from pixel coordinates to camera coordinates.
 
     Args:
-        depthes(Variable): Shape is (N, 1, H, W)
+        depthes(Variable): Shape is (N, 3, H*W)
         pixel_coords(array): Shape is (N, 3, H*W)
         intrinsics(array): Shape is (N, 3, 3)
     Returns:

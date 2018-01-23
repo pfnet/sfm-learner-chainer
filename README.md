@@ -25,6 +25,18 @@ Once the data are formatted following the above instructions, you should be able
 python3 train.py experiments/sfm_learner_v1.yml
 ```
 
+
+## Testing using KiTTI Raw Dataset
+Once you have model trained, you can obtain the single-view depth predictions on the KITTI eigen test split formatted properly for evaluation by running
+```bash
+python test_kitti_depth.py --dataset_dir /path/to/raw/kitti/dataset/ --output_dir /path/to/output/directory --ckpt_file /path/to/pre-trained/model/file/
+```
+Again, a sample model can be downloaded by
+```bash
+bash ./models/download_depth_model.sh
+```
+
+
 ## トレーニングする際の注意点
 - とりあえず、kittiのraw datasetを用いてトレーニングを行います。
 - フレーム数: Depthは3, Poseは5を利用。中心画像をTargetとして利用
