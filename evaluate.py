@@ -33,13 +33,15 @@ def evaluate_depth():
                                      config['iterator'])
     model.to_gpu(devices['main'])
 
-    dataset_config = config['dataset']['test']['args']
     index = 0
     for batch in test_iter:
-        input_img = batch[0][0].transpose(1, 2, 0)
         batch = chainer.dataset.concat_examples(batch, devices['main'])
-        pred_depth, pred_pose, pred_mask = model.inference(*batch)
-        depth = chainer.cuda.to_cpu(pred_depth.data[0, 0])
+        tgt_img, ref_imgs, intrinsics, gt_depth = batch
+        pred_depth, pred_pose, pred_mask = model.inference(tgt_img,
+                                                           ref_imgs,
+                                                           intrinsics, None)
+        pred_depth = chainer.cuda.to_cpu(pred_depth.data)
+        
 
 def main():
     evaluate_depth()

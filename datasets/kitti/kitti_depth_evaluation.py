@@ -27,70 +27,58 @@ class KittiDepthEvaluation(dataset.DatasetMixin):
     def __init__(self, data_dir=None, test_files=None, seq_len=3, split='train'):
         with open(os.path.join(test_files), 'r') as f:
             file_pathes = f.read().split('\n')
-        
+
         self.base_dir = data_dir
         self.file_pathes = file_pathes[:-1] if not file_pathes[-1] else file_pathes
         # self.file_pathes = [os.path.join(data_dir, path) for path in file_pathes]
         self.seq_len = seq_len
+        self.demi_len = (self.seq_len - 1) // 2
         self.read_scene_data()
 
     def read_scene_data(self):
         self.calib_dir_list, self.velo_file_list = [], []
         self.imgs_file_list, self.cams = [], []
         demi_len = (self.seq_len - 1) // 2
-        file_iter = [i for i in range(-demi_len, demi_len+1) if i != 0]
+        src_iter = [i for i in range(-demi_len, demi_len+1) if i != 0]
         for file_path in self.file_pathes:
             date, scene, cam_id, _, index = file_path[:-4].split('/')
             scene_dir = os.path.join(self.base_dir, date, scene)
             img_dir = os.path.join(scene_dir, cam_id, 'data')
-            imgs_path = [os.path.join(img_dir, '{:010d}.png'.format(int(index) + fi)) for fi in file_iter]
+            tgt_img_path = os.path.join(img_dir, '{}.png'.format(index))
+            src_imgs_path = [os.path.join(img_dir, '{:010d}.png'.format(int(index) + si)) for si in src_iter]
             velo_path = [os.path.join(scene_dir, 'velodyne_points/data/{}.bin'.format(index))]
             self.calib_dir_list.append(os.path.join(self.base_dir, date))
             self.velo_file_list.append(velo_path)
-            self.imgs_file_list.append(imgs_path)
+            self.imgs_file_list.append([tgt_img_path, src_imgs_path])
             self.cams.append(int(cam_id[-2:]))
-
-    def crawl_folders(self):
-        sequence_set = []
-        demi_len = (self.seq_len - 1)//2
-        for dir_path in self.r_pathes:
-            calib_path = os.path.join(dir_path, 'cam.txt')
-            intrinsics = np.genfromtxt(calib_path, delimiter=',')
-            intrinsics = intrinsics.astype(np.float32).reshape((3, 3))
-            imgs = glob.glob(os.path.join(dir_path, '*.jpg'))
-            imgs.sort()
-            if len(imgs) < self.seq_len:
-                continue
-            for i in range(demi_len, len(imgs)-demi_len):
-                sample = {'intrinsics': intrinsics, 'tgt': imgs[i],
-                          'ref_imgs': []}
-                for j in range(-demi_len, demi_len + 1):
-                    if j != 0:
-                        sample['ref_imgs'].append(imgs[i+j])
-                sequence_set.append(sample)
-        random.shuffle(sequence_set)
-        return sequence_set
 
     def __len__(self):
         return len(self.imgs_file_list)
 
     def get_example(self, i):
-        sample = self.samples[i]
-        tgt_img = load_as_float_norm(sample['tgt'])
-        ref_imgs = [load_as_float_norm(ref_img) for ref_img in sample['ref_imgs']]
-        intrinsics = np.copy(sample['intrinsics'])
-        return tgt_img, ref_imgs, intrinsics, np.linalg.inv(intrinsics)
+        calib_dir = self.calib_dir_list[i]
+        imgs_path = self.imgs_file_list[i]
+        tgt_img_path = imgs_path[0]
+        src_imgs_path = imgs_path[1]
+        velo_path = self.velo_file_list[i]
+        tgt_img = imread(tgt_img_path).astype('f')
+        src_imgs = [imread(path).astype('f') for path in src_imgs_path]
+        gt_depth = generate_depth_map(calib_dir, tgt_img, velo_path, tgt.shape[:2],
+                                   self.cams[i])
+        return tgt_img, ref_imgs, intrinsics, gt_depth
 
+width_to_focal = dict()
+width_to_focal[1242] = 721.5377
+width_to_focal[1241] = 718.856
+width_to_focal[1224] = 707.0493
+width_to_focal[1238] = 718.3351
 
 def load_velodyne_points(file_name):
-    # adapted from https://github.com/hunse/kitti
-    points = np.fromfile(file_name, dtype=np.float32).reshape(-1, 4)
+    points = np.fromfile(file_name, dtype='f').reshape(-1, 4)
     points[:,3] = 1
     return points
 
-
 def read_calib_file(path):
-    # taken from https://github.com/hunse/kitti
     float_chars = set("0123456789.e+- ")
     data = {}
     with open(path, 'r') as f:
@@ -105,9 +93,7 @@ def read_calib_file(path):
                 except ValueError:
                     # casting error: data[key] already eq. value, so pass
                     pass
-
     return data
-
 
 def get_focal_length_baseline(calib_dir, cam=2):
     cam2cam = read_calib_file(calib_dir + 'calib_cam_to_cam.txt')
@@ -135,8 +121,8 @@ def sub2ind(matrixSize, rowSub, colSub):
 
 def generate_depth_map(calib_dir, velo_file_name, im_shape, cam=2):
     # load calibration files
-    cam2cam = read_calib_file(calib_dir/'calib_cam_to_cam.txt')
-    velo2cam = read_calib_file(calib_dir/'calib_velo_to_cam.txt')
+    cam2cam = read_calib_file(os.path.join(calib_dir, 'calib_cam_to_cam.txt'))
+    velo2cam = read_calib_file(os.path.join(calib_dir, 'calib_velo_to_cam.txt'))
     velo2cam = np.hstack((velo2cam['R'].reshape(3,3), velo2cam['T'][..., np.newaxis]))
     velo2cam = np.vstack((velo2cam, np.array([0, 0, 0, 1.0])))
 
@@ -177,7 +163,6 @@ def generate_depth_map(calib_dir, velo_file_name, im_shape, cam=2):
         depth[y_loc, x_loc] = velo_pts_im[pts, 2].min()
     depth[depth < 0] = 0
     return depth
-
 
 def generate_mask(gt_depth, min_depth, max_depth):
     mask = np.logical_and(gt_depth > min_depth,
