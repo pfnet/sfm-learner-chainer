@@ -77,7 +77,7 @@ class SFMLearner(chainer.Chain):
             if self.smooth_reg:
                 # start3, stop3 = create_timer()
                 smooth_loss += (self.smooth_reg / (2 ** ns)) * \
-                                   self.compute_smooth_loss(curr_pred_depthes)
+                                   self.compute_smooth_loss(pred_disps[ns])
                 # print_timer(start3, stop3, 'smooth')
             curr_pred_depthes = F.reshape(curr_pred_depthes, (batchsize, 1, -1))
             curr_pred_depthes = F.broadcast_to(curr_pred_depthes,
