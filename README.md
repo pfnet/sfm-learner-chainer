@@ -6,11 +6,6 @@ See the [project webpage](https://people.eecs.berkeley.edu/~tinghuiz/projects/Sf
 
 TF code: https://github.com/tinghuiz/SfMLearner
 
-初心者になんか参考になりそうなページ: https://qiita.com/peisuke/items/fbe00bacb22df8115323
-
-## TODO
-- test, evaluator
-
 ## Preparing training data
 In order to train the model using the provided code, the data needs to be formatted in a certain manner.
 
@@ -28,26 +23,16 @@ python3 train.py experiments/sfm_learner_v1.yml
 ## Evaluation using KiTTI Raw Dataset
 Once you have model trained, you can obtain the single-view depth predictions on the KITTI eigen test split formatted properly for evaluation by running
 ```bash
-python evaluate.py
+python evaluate.py experiments/sfm_learner_v1_eval.yml
 ```
 
 ## Inference using KiTTI Raw Dataset
-Once you have model trained, you can obtain the single-view depth predictions on the KITTI eigen test split formatted properly for evaluation by running
 ```bash
-python test_kitti_depth.py --dataset_dir /path/to/raw/kitti/dataset/ --output_dir /path/to/output/directory --ckpt_file /path/to/pre-trained/model/file/
+python inference.py experiments/sfm_learner_v1_test.yml
 ```
-Again, a sample model can be downloaded by
-```bash
-bash ./models/download_depth_model.sh
-```
-
 
 ## トレーニングする際の注意点
 - とりあえず、kittiのraw datasetを用いてトレーニングを行います。
-- フレーム数: Depthは3, Poseは5を利用。中心画像をTargetとして利用
+- フレーム数: Depth訓練の際は3, Poseは5を利用。中心画像をTargetとして利用（論文参照）
 - KITTIデータでは、左右両方の画像を独立なデータとして利用
-- Optical Flowを用いて動きが見られないデータを削除(おそらくstatic_frames.txtがそのリスト)
-
-## IDEA
-- Explanation Maskを正確に学習できると、その結果をsegmentationに応用できそう
-- 同じく、Edge Detection, depth推定も精度が向上しそう
+- Optical Flowを用いて動きが見られないデータを削除(static_frames.txt)
