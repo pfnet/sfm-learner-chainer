@@ -1,6 +1,6 @@
 end_trigger: [200000, "iteration"]
 results: results/eval
-gpus: [1]
+gpus: [0]
 mode: Test
 seed: 1
 
@@ -16,10 +16,11 @@ model:
 
 dataset:
   test:
-    module: datasets.kitti.kitti_raw_transformed
+    module: datasets.kitti.kitti_depth_evaluation
     name: KittiDepthEvaluation
     args:
-      data_dir: ../dataset/KITTI_formatted
+      data_dir: ../dataset/kitti_raw
+      test_files: ./kitti_eval/test_files_eigen.txt
       # data_dir: /home/user/.chainer/dataset/pfnet/chainer/raw
       split: train
       seq_len: 3
