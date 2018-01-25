@@ -8,6 +8,7 @@ import numpy as np
 import cupy as cp
 from models import utils
 from models.utils import *
+from spatial_transformer_sampler_interp import spatial_transformer_sampler_interp
 
 def euler2mat(r, xp=np):
     """Converts euler angles to rotation matrix
@@ -181,6 +182,7 @@ def projective_inverse_warp(imgs, depthes, poses, K):
     # print_timer(start, stop, 'cam2pixel')
 
     # start, stop = create_timer()
-    transformed_img = F.spatial_transformer_sampler(imgs, src_pixel_coords)
+    # transformed_img = F.spatial_transformer_sampler(imgs, src_pixel_coords)
+    transformed_img = spatial_transformer_sampler_interp(imgs, src_pixel_coords)
     # print_timer(start, stop, 'spatial transformer')
     return transformed_img
