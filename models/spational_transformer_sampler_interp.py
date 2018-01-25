@@ -1,11 +1,10 @@
 import numpy
 
 import chainer
-from chainer.backends import cuda
 from chainer import function
 from chainer.utils import argument
 from chainer.utils import type_check
-
+from chainer import cuda
 
 class SpatialTransformerSamplerInterp(function.Function):
 
@@ -37,35 +36,38 @@ class SpatialTransformerSamplerInterp(function.Function):
         _, _, out_H, out_W = grid.shape
 
         grid = grid.reshape(grid.shape[:2] + (-1,))
-
+        
         u = grid[:, 0]
         v = grid[:, 1]
-
+        
         # Rescale coordinates from [-1, 1] to [0, width or height - 1],
         # and adjust them to the padded image.
-        u = (u + 1) * (W - 1) / 2 + 1
-        v = (v + 1) * (H - 1) / 2 + 1
-
-        u_clipped = u.clip(0, W - 1)
-        v_clipped = v.clip(0, H - 1)
+        u = (u + 1) * ((W - 1) / 2)
+        v = (v + 1) * ((H - 1) / 2)
 
         # indices of the 2x2 pixel neighborhood surrounding the coordinates
-        u0 = xp.floor(u_clipped).astype(numpy.int32)
+        u0 = xp.floor(u)
         u1 = u0 + 1
-        v0 = xp.floor(v_clipped).astype(numpy.int32)
+        v0 = xp.floor(v)
         v1 = v0 + 1
 
         # weights
-        w1 = (u1 - u_clipped) * (v1 - v_clipped)
-        w2 = (u_clipped - u0) * (v1 - v_clipped)
-        w3 = (u1 - u_clipped) * (v_clipped - v0)
-        w4 = (u_clipped - u0) * (v_clipped - v0)
-        w1 = w1.astype(x.dtype)
-        w2 = w2.astype(x.dtype)
-        w3 = w3.astype(x.dtype)
-        w4 = w4.astype(x.dtype)
+        w1 = (u1 - u) * (v1 - v)
+        w2 = (u - u0) * (v1 - v)
+        w3 = (u1 - u) * (v - v0)
+        w4 = (u - u0) * (v - v0)
+        u0 = u0.clip(0, W - 1).astype(numpy.int32)
+        v0 = v0.clip(0, H - 1).astype(numpy.int32)
+        u1 = u0.clip(0, W - 1).astype(numpy.int32)
+        v1 = v1.clip(0, H - 1).astype(numpy.int32)
+        #print(w1.dtype, x.dtype)
+        #w1 = w1.astype(x.dtype)
+        #w2 = w2.astype(x.dtype)
+        #w3 = w3.astype(x.dtype)
+        #w4 = w4.astype(x.dtype)
+        #hoge = xp.repeat(xp.range(grid.shape[2]), B)
+        #a = 
 
-        # (Batch, C, H, W)
         x_indexed_1 = xp.concatenate([xp.expand_dims(
             x[b, :, v0[b], u0[b]], axis=0) for b in range(B)], axis=0)
         x_indexed_2 = xp.concatenate([xp.expand_dims(
@@ -78,8 +80,6 @@ class SpatialTransformerSamplerInterp(function.Function):
         y += w2[:, :, None] * x_indexed_2
         y += w3[:, :, None] * x_indexed_3
         y += w4[:, :, None] * x_indexed_4
-
-        print(w1.shape, y.shape, x_indexed_1.shape)
 
         y = y.reshape(B, out_H, out_W, C).transpose(0, 3, 1, 2)
         return y,
@@ -94,7 +94,6 @@ class SpatialTransformerSamplerInterp(function.Function):
         x, grid = inputs
         xp = cuda.get_array_module(x)
         gy, = grad_outputs
-
         B, C, H, W = x.shape
         _, _, out_H, out_W = grid.shape
         grid = grid.reshape(grid.shape[:2] + (-1,))
@@ -104,23 +103,24 @@ class SpatialTransformerSamplerInterp(function.Function):
 
         # Rescale coordinates from [-1, 1] to [0, width or height - 1],
         # and adjust them to the padded image.
-        u = (u + 1) * (W - 1) / 2 + 1
-        v = (v + 1) * (H - 1) / 2 + 1
-
-        u_clipped = u.clip(0, W - 1)
-        v_clipped = v.clip(0, H - 1)
+        u = (u + 1) * (W - 1) / 2
+        v = (v + 1) * (H - 1) / 2
 
         # indices of the 2x2 pixel neighborhood surrounding the coordinates
-        u0 = xp.floor(u_clipped).astype(numpy.int32)
+        u0 = xp.floor(u)
         u1 = u0 + 1
-        v0 = xp.floor(v_clipped).astype(numpy.int32)
+        v0 = xp.floor(v)
         v1 = v0 + 1
 
         # weights
-        wu0 = u_clipped - u0
-        wu1 = u1 - u_clipped
-        wv0 = v_clipped - v0
-        wv1 = v1 - v_clipped
+        wu0 = u - u0
+        wu1 = u1 - u
+        wv0 = v - v0
+        wv1 = v1 - v
+        u0 = u0.clip(0, W - 1).astype(numpy.int32)
+        v0 = v0.clip(0, H - 1).astype(numpy.int32)
+        u1 = u0.clip(0, W - 1).astype(numpy.int32)
+        v1 = v1.clip(0, H - 1).astype(numpy.int32)
         wu0 = wu0.astype(gy.dtype)
         wu1 = wu1.astype(gy.dtype)
         wv0 = wv0.astype(gy.dtype)
@@ -166,7 +166,7 @@ class SpatialTransformerSamplerInterp(function.Function):
             scatter_add = numpy.add.at
         else:
             scatter_add = xp.scatter_add
-        gx = xp.zeros_like(x_pad)
+        gx = xp.zeros_like(x)
         gy = gy.reshape(B, C, -1)
         for b in range(B):
             scatter_add(gx[b], (slice(None), v0[b], u0[b]),
@@ -177,7 +177,7 @@ class SpatialTransformerSamplerInterp(function.Function):
                         gy[b] * wu1[b] * wv0[b])
             scatter_add(gx[b], (slice(None), v1[b], u1[b]),
                         gy[b] * wu0[b] * wv0[b])
-        gx = gx[:, :, 1:-1, 1:-1]
+        gx = gx
         return gx, ggrid
 
 

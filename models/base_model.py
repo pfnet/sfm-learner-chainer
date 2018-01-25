@@ -104,7 +104,7 @@ class SFMLearner(chainer.Chain):
                     exp_loss += self.exp_reg * \
                                     self.compute_exp_reg_loss(pred_exp_logits)
                     pred_exp = F.sigmoid(pred_exp_logits)
-                    pred_exp = F.broadcast_to(pred_exp, (batchsize, 3, *curr_img_size))
+                    pred_exp = F.broadcast_to(pred_exp, (batchsize, 3, curr_img_size[0], curr_img_size[1]))
                     pixel_loss += F.mean(curr_proj_error * pred_exp)
                 else:
                     pixel_loss += F.mean(curr_proj_error)
