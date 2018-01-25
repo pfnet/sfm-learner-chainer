@@ -35,17 +35,14 @@ class SpatialTransformerSamplerInterp(function.Function):
         B, C, H, W = x.shape
         _, _, out_H, out_W = grid.shape
 
-        grid = grid.reshape(grid.shape[:2] + (-1,))
-        
-        u = grid[:, 0]
-        v = grid[:, 1]
-        
+        u = grid[:, 0].reshape(-1)
+        v = grid[:, 1].reshape(-1)
+       
         # Rescale coordinates from [-1, 1] to [0, width or height - 1],
         # and adjust them to the padded image.
         u = (u + 1) * ((W - 1) / 2)
         v = (v + 1) * ((H - 1) / 2)
 
-        # indices of the 2x2 pixel neighborhood surrounding the coordinates
         u0 = xp.floor(u)
         u1 = u0 + 1
         v0 = xp.floor(v)
@@ -58,29 +55,20 @@ class SpatialTransformerSamplerInterp(function.Function):
         w4 = (u - u0) * (v - v0)
         u0 = u0.clip(0, W - 1).astype(numpy.int32)
         v0 = v0.clip(0, H - 1).astype(numpy.int32)
-        u1 = u0.clip(0, W - 1).astype(numpy.int32)
+        u1 = u1.clip(0, W - 1).astype(numpy.int32)
         v1 = v1.clip(0, H - 1).astype(numpy.int32)
-        #print(w1.dtype, x.dtype)
-        #w1 = w1.astype(x.dtype)
-        #w2 = w2.astype(x.dtype)
-        #w3 = w3.astype(x.dtype)
-        #w4 = w4.astype(x.dtype)
-        #hoge = xp.repeat(xp.range(grid.shape[2]), B)
-        #a = 
+        w1 = w1.astype(x.dtype)
+        w2 = w2.astype(x.dtype)
+        w3 = w3.astype(x.dtype)
+        w4 = w4.astype(x.dtype)
 
-        x_indexed_1 = xp.concatenate([xp.expand_dims(
-            x[b, :, v0[b], u0[b]], axis=0) for b in range(B)], axis=0)
-        x_indexed_2 = xp.concatenate([xp.expand_dims(
-            x[b, :, v0[b], u1[b]], axis=0) for b in range(B)], axis=0)
-        x_indexed_3 = xp.concatenate([xp.expand_dims(
-            x[b, :, v1[b], u0[b]], axis=0) for b in range(B)], axis=0)
-        x_indexed_4 = xp.concatenate([xp.expand_dims(
-            x[b, :, v1[b], u1[b]], axis=0) for b in range(B)], axis=0)
-        y = w1[:, :, None] * x_indexed_1
-        y += w2[:, :, None] * x_indexed_2
-        y += w3[:, :, None] * x_indexed_3
-        y += w4[:, :, None] * x_indexed_4
-
+        batch_index = xp.repeat(xp.arange(B), out_H * out_W)
+        y = w1[:, None] * x[batch_index, :, v0, u0]
+        y += w2[:, None] * x[batch_index, :, v0, u1]
+        y += w3[:, None] * x[batch_index, :, v1, u0]
+        y += w4[:, None] * x[batch_index, :, v1, u1]
+        #print(w1[100], w2[100], w3[100], w4[100]) # debug
+        #print(grid[0, :, 0, 0], x[0, :, 0, 0], y[0, :]) # debug
         y = y.reshape(B, out_H, out_W, C).transpose(0, 3, 1, 2)
         return y,
 
@@ -119,7 +107,7 @@ class SpatialTransformerSamplerInterp(function.Function):
         wv1 = v1 - v
         u0 = u0.clip(0, W - 1).astype(numpy.int32)
         v0 = v0.clip(0, H - 1).astype(numpy.int32)
-        u1 = u0.clip(0, W - 1).astype(numpy.int32)
+        u1 = u1.clip(0, W - 1).astype(numpy.int32)
         v1 = v1.clip(0, H - 1).astype(numpy.int32)
         wu0 = wu0.astype(gy.dtype)
         wu1 = wu1.astype(gy.dtype)
