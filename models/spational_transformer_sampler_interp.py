@@ -67,7 +67,8 @@ class SpatialTransformerSamplerInterp(function.Function):
         y += w2[:, None] * x[batch_index, :, v0, u1]
         y += w3[:, None] * x[batch_index, :, v1, u0]
         y += w4[:, None] * x[batch_index, :, v1, u1]
-        #print(w1[100], w2[100], w3[100], w4[100]) # debug
+        # print((w1 + w2 + w3 + w4).mean()) # debug
+        # print(w1[100], w2[100], w3[100], w4[100]) # debug
         #print(grid[0, :, 0, 0], x[0, :, 0, 0], y[0, :]) # debug
         y = y.reshape(B, out_H, out_W, C).transpose(0, 3, 1, 2)
         return y,
@@ -100,15 +101,23 @@ class SpatialTransformerSamplerInterp(function.Function):
         v0 = xp.floor(v)
         v1 = v0 + 1
 
+        u0 = u0.clip(0, W - 1).astype(numpy.int32)
+        v0 = v0.clip(0, H - 1).astype(numpy.int32)
+        u1 = u1.clip(0, W - 1).astype(numpy.int32)
+        v1 = v1.clip(0, H - 1).astype(numpy.int32)
+        u = u.clip(0, W - 1)
+        v = v.clip(0, H - 1)
         # weights
         wu0 = u - u0
         wu1 = u1 - u
         wv0 = v - v0
         wv1 = v1 - v
+        """
         u0 = u0.clip(0, W - 1).astype(numpy.int32)
         v0 = v0.clip(0, H - 1).astype(numpy.int32)
         u1 = u1.clip(0, W - 1).astype(numpy.int32)
         v1 = v1.clip(0, H - 1).astype(numpy.int32)
+        """
         wu0 = wu0.astype(gy.dtype)
         wu1 = wu1.astype(gy.dtype)
         wv0 = wv0.astype(gy.dtype)
