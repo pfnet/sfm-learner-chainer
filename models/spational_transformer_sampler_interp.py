@@ -37,7 +37,7 @@ class SpatialTransformerSamplerInterp(function.Function):
 
         u = grid[:, 0].reshape(-1)
         v = grid[:, 1].reshape(-1)
-       
+
         # Rescale coordinates from [-1, 1] to [0, width or height - 1],
         # and adjust them to the padded image.
         u = (u + 1) * ((W - 1) / 2)
@@ -68,8 +68,16 @@ class SpatialTransformerSamplerInterp(function.Function):
         y += w3[:, None] * x[batch_index, :, v1, u0]
         y += w4[:, None] * x[batch_index, :, v1, u1]
         # print((w1 + w2 + w3 + w4).mean()) # debug
+        # print("\n forward ")
         # print(w1[100], w2[100], w3[100], w4[100]) # debug
-        #print(grid[0, :, 0, 0], x[0, :, 0, 0], y[0, :]) # debug
+        # print(grid[0, :, 8, 8], y[424, :]) # debug
+        # i = 424
+        # x0 = x[0, :, v0[i], u0[i]]
+        # x1 = x[0, :, v0[i], u1[i]]
+        # x2 = x[0, :, v1[i], u0[i]]
+        # x3 = x[0, :, v1[i], u1[i]]
+        # print(v0[i], v1[i], u0[i], u1[i])
+        # print(x0, x1, x2, x3)
         y = y.reshape(B, out_H, out_W, C).transpose(0, 3, 1, 2)
         return y,
 
@@ -85,10 +93,9 @@ class SpatialTransformerSamplerInterp(function.Function):
         gy, = grad_outputs
         B, C, H, W = x.shape
         _, _, out_H, out_W = grid.shape
-        grid = grid.reshape(grid.shape[:2] + (-1,))
 
-        u = grid[:, 0]
-        v = grid[:, 1]
+        u = grid[:, 0].reshape(-1)
+        v = grid[:, 1].reshape(-1)
 
         # Rescale coordinates from [-1, 1] to [0, width or height - 1],
         # and adjust them to the padded image.
@@ -101,47 +108,34 @@ class SpatialTransformerSamplerInterp(function.Function):
         v0 = xp.floor(v)
         v1 = v0 + 1
 
-        u0 = u0.clip(0, W - 1).astype(numpy.int32)
-        v0 = v0.clip(0, H - 1).astype(numpy.int32)
-        u1 = u1.clip(0, W - 1).astype(numpy.int32)
-        v1 = v1.clip(0, H - 1).astype(numpy.int32)
-        u = u.clip(0, W - 1)
-        v = v.clip(0, H - 1)
         # weights
         wu0 = u - u0
         wu1 = u1 - u
         wv0 = v - v0
         wv1 = v1 - v
-        """
         u0 = u0.clip(0, W - 1).astype(numpy.int32)
         v0 = v0.clip(0, H - 1).astype(numpy.int32)
         u1 = u1.clip(0, W - 1).astype(numpy.int32)
         v1 = v1.clip(0, H - 1).astype(numpy.int32)
-        """
         wu0 = wu0.astype(gy.dtype)
         wu1 = wu1.astype(gy.dtype)
         wv0 = wv0.astype(gy.dtype)
         wv1 = wv1.astype(gy.dtype)
+        batch_index = xp.repeat(xp.arange(B), out_H * out_W)
+        x_indexed_1 = x[batch_index, :, v0, u0]
+        x_indexed_2 = x[batch_index, :, v0, u1]
+        x_indexed_3 = x[batch_index, :, v1, u0]
+        x_indexed_4 = x[batch_index, :, v1, u1]
 
-        # --- gu, gv
-        x_indexed_1 = xp.concatenate([xp.expand_dims(
-            x[b, :, v0[b], u0[b]], axis=0) for b in range(B)], axis=0)
-        x_indexed_2 = xp.concatenate([xp.expand_dims(
-            x[b, :, v0[b], u1[b]], axis=0) for b in range(B)], axis=0)
-        x_indexed_3 = xp.concatenate([xp.expand_dims(
-            x[b, :, v1[b], u0[b]], axis=0) for b in range(B)], axis=0)
-        x_indexed_4 = xp.concatenate([xp.expand_dims(
-            x[b, :, v1[b], u1[b]], axis=0) for b in range(B)], axis=0)
+        gu = -wv1[:, None] * x_indexed_1
+        gu += wv1[:, None] * x_indexed_2
+        gu -= wv0[:, None] * x_indexed_3
+        gu += wv0[:, None] * x_indexed_4
 
-        gu = -wv1[:, :, None] * x_indexed_1
-        gu += wv1[:, :, None] * x_indexed_2
-        gu -= wv0[:, :, None] * x_indexed_3
-        gu += wv0[:, :, None] * x_indexed_4
-
-        gv = -wu1[:, :, None] * x_indexed_1
-        gv -= wu0[:, :, None] * x_indexed_2
-        gv += wu1[:, :, None] * x_indexed_3
-        gv += wu0[:, :, None] * x_indexed_4
+        gv = -wu1[:, None] * x_indexed_1
+        gv -= wu0[:, None] * x_indexed_2
+        gv += wu1[:, None] * x_indexed_3
+        gv += wu0[:, None] * x_indexed_4
 
         gu = gu.reshape(B, out_H, out_W, C).transpose(0, 3, 1, 2)
         gv = gv.reshape(B, out_H, out_W, C).transpose(0, 3, 1, 2)
@@ -153,27 +147,27 @@ class SpatialTransformerSamplerInterp(function.Function):
         # Offsets scaling of the coordinates and clip gradients.
         u_reshaped = u.reshape(gu.shape)
         v_reshaped = v.reshape(gv.shape)
-        gu = gu / 2. * (W - 1)
-        gv = gv / 2. * (H - 1)
+        gu = gu / 2. * (W - 1) * (u_reshaped > 0) * (u_reshaped < (W - 1))
+        gv = gv / 2. * (H - 1) * (v_reshaped > 0) * (v_reshaped < (H - 1))
 
         ggrid = xp.concatenate((gu[:, None], gv[:, None]), axis=1)
 
         # --- gx
-        if xp is numpy:
-            scatter_add = numpy.add.at
-        else:
-            scatter_add = xp.scatter_add
+        # if xp is numpy:
+        #     scatter_add = numpy.add.at
+        # else:
+        #     scatter_add = xp.scatter_add
         gx = xp.zeros_like(x)
-        gy = gy.reshape(B, C, -1)
-        for b in range(B):
-            scatter_add(gx[b], (slice(None), v0[b], u0[b]),
-                        gy[b] * wu1[b] * wv1[b])
-            scatter_add(gx[b], (slice(None), v0[b], u1[b]),
-                        gy[b] * wu0[b] * wv1[b])
-            scatter_add(gx[b], (slice(None), v1[b], u0[b]),
-                        gy[b] * wu1[b] * wv0[b])
-            scatter_add(gx[b], (slice(None), v1[b], u1[b]),
-                        gy[b] * wu0[b] * wv0[b])
+        # gy = gy.reshape(B, C, -1)
+        # for b in range(B):
+        #     scatter_add(gx[b], (slice(None), v0[b], u0[b]),
+        #                 gy[b] * wu1[b] * wv1[b])
+        #     scatter_add(gx[b], (slice(None), v0[b], u1[b]),
+        #                 gy[b] * wu0[b] * wv1[b])
+        #     scatter_add(gx[b], (slice(None), v1[b], u0[b]),
+        #                 gy[b] * wu1[b] * wv0[b])
+        #     scatter_add(gx[b], (slice(None), v1[b], u1[b]),
+        #                 gy[b] * wu0[b] * wv0[b])
         gx = gx
         return gx, ggrid
 
