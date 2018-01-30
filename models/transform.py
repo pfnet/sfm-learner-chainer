@@ -123,9 +123,10 @@ def cam2pixel(cam_coords, proj, im_shape):
     N, _, H, W = im_shape
     unnormalized_pixel_coords = F.batch_matmul(proj, cam_coords)
     z = unnormalized_pixel_coords[:, 2:3, :] + 1e-10
-    p_s_x = (unnormalized_pixel_coords[:, 0:1] / z) / ((W - 1) / 2.) - 1
-    p_s_y = (unnormalized_pixel_coords[:, 1:2] / z) / ((H - 1) / 2.) - 1
-    p_s_xy = F.concat((p_s_x, p_s_y), axis=1)
+    # p_s_x = (unnormalized_pixel_coords[:, 0:1] / z) / ((W - 1) / 2.) - 1
+    # p_s_y = (unnormalized_pixel_coords[:, 1:2] / z) / ((H - 1) / 2.) - 1
+    # p_s_xy = F.concat((p_s_x, p_s_y), axis=1)
+    p_s_xy = unnormalized_pixel_coords[:, :2] / F.broadcast_to(z, (N, 2, H*W))
     p_s_xy = F.reshape(p_s_xy, (N, 2, H, W))
     return p_s_xy
 

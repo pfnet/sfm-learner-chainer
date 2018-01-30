@@ -40,28 +40,38 @@ class SpatialTransformerSamplerInterp(function.Function):
 
         # Rescale coordinates from [-1, 1] to [0, width or height - 1],
         # and adjust them to the padded image.
-        u = (u + 1) * ((W - 1) / 2)
-        v = (v + 1) * ((H - 1) / 2)
+        # u = (u + 1) * ((W - 1) / 2)
+        # v = (v + 1) * ((H - 1) / 2)
 
         u0 = xp.floor(u)
         u1 = u0 + 1
         v0 = xp.floor(v)
         v1 = v0 + 1
 
-        u0 = u0.clip(0, W - 1).astype(numpy.int32)
-        v0 = v0.clip(0, H - 1).astype(numpy.int32)
-        u1 = u1.clip(0, W - 1).astype(numpy.int32)
-        v1 = v1.clip(0, H - 1).astype(numpy.int32)
+        u0 = u0.clip(0, W - 1)
+        v0 = v0.clip(0, H - 1)
+        u1 = u1.clip(0, W - 1)
+        v1 = v1.clip(0, H - 1)
 
         # weights
-        w1 = (u1 - u) * (v1 - v)
-        w2 = (u - u0) * (v1 - v)
-        w3 = (u1 - u) * (v - v0)
-        w4 = (u - u0) * (v - v0)
+        wt_x0 = u1 - u
+        wt_x1 = u - u0
+        wt_y0 = v1 - v
+        wt_y1 = v - v0
+
+        w1 = wt_x0 * wt_y0
+        w2 = wt_x1 * wt_y0
+        w3 = wt_x0 * wt_y1
+        w4 = wt_x1 * wt_y1
         w1 = w1.astype(x.dtype)
         w2 = w2.astype(x.dtype)
         w3 = w3.astype(x.dtype)
         w4 = w4.astype(x.dtype)
+
+        u0 = u0.astype(numpy.int32)
+        v0 = v0.astype(numpy.int32)
+        u1 = u1.astype(numpy.int32)
+        v1 = v1.astype(numpy.int32)
 
         batch_index = xp.repeat(xp.arange(B), out_H * out_W)
         y = w1[:, None] * x[batch_index, :, v0, u0]
@@ -100,8 +110,6 @@ class SpatialTransformerSamplerInterp(function.Function):
 
         # Rescale coordinates from [-1, 1] to [0, width or height - 1],
         # and adjust them to the padded image.
-        u = (u + 1) * (W - 1) / 2
-        v = (v + 1) * (H - 1) / 2
 
         # indices of the 2x2 pixel neighborhood surrounding the coordinates
         u0 = xp.floor(u)
@@ -109,35 +117,42 @@ class SpatialTransformerSamplerInterp(function.Function):
         v0 = xp.floor(v)
         v1 = v0 + 1
 
-        u0 = u0.clip(0, W - 1).astype(numpy.int32)
-        v0 = v0.clip(0, H - 1).astype(numpy.int32)
-        u1 = u1.clip(0, W - 1).astype(numpy.int32)
-        v1 = v1.clip(0, H - 1).astype(numpy.int32)
+        u0 = u0.clip(0, W - 1)
+        v0 = v0.clip(0, H - 1)
+        u1 = u1.clip(0, W - 1)
+        v1 = v1.clip(0, H - 1)
 
         # weights
-        wu0 = u - u0
-        wu1 = u1 - u
-        wv0 = v - v0
-        wv1 = v1 - v
-        wu0 = wu0.astype(gy.dtype)
-        wu1 = wu1.astype(gy.dtype)
-        wv0 = wv0.astype(gy.dtype)
-        wv1 = wv1.astype(gy.dtype)
+        wt_x0 = u1 - u
+        wt_x1 = u - u0
+        wt_y0 = v1 - v
+        wt_y1 = v - v0
+
+        wt_x0 = wt_x0.astype(gy.dtype)
+        wt_x1 = wt_x1.astype(gy.dtype)
+        wt_y0 = wt_y0.astype(gy.dtype)
+        wt_y1 = wt_y1.astype(gy.dtype)
+
+        u0 = u0.astype(numpy.int32)
+        v0 = v0.astype(numpy.int32)
+        u1 = u1.astype(numpy.int32)
+        v1 = v1.astype(numpy.int32)
+
         batch_index = xp.repeat(xp.arange(B), out_H * out_W)
         x_indexed_1 = x[batch_index, :, v0, u0]
         x_indexed_2 = x[batch_index, :, v0, u1]
         x_indexed_3 = x[batch_index, :, v1, u0]
         x_indexed_4 = x[batch_index, :, v1, u1]
 
-        gu = -wv1[:, None] * x_indexed_1
-        gu += wv1[:, None] * x_indexed_2
-        gu -= wv0[:, None] * x_indexed_3
-        gu += wv0[:, None] * x_indexed_4
+        gu = -wt_y0[:, None] * x_indexed_1
+        gu += wt_y0[:, None] * x_indexed_2
+        gu -= wt_y1[:, None] * x_indexed_3
+        gu += wt_y1[:, None] * x_indexed_4
 
-        gv = -wu1[:, None] * x_indexed_1
-        gv -= wu0[:, None] * x_indexed_2
-        gv += wu1[:, None] * x_indexed_3
-        gv += wu0[:, None] * x_indexed_4
+        gv = -wt_x0[:, None] * x_indexed_1
+        gv -= wt_x1[:, None] * x_indexed_2
+        gv += wt_x0[:, None] * x_indexed_3
+        gv += wt_x1[:, None] * x_indexed_4
 
         gu = gu.reshape(B, out_H, out_W, C).transpose(0, 3, 1, 2)
         gv = gv.reshape(B, out_H, out_W, C).transpose(0, 3, 1, 2)
@@ -147,30 +162,8 @@ class SpatialTransformerSamplerInterp(function.Function):
         gu = xp.sum(gu, axis=1)
         gv = xp.sum(gv, axis=1)
         # Offsets scaling of the coordinates and clip gradients.
-        # u_reshaped = u.reshape(gu.shape)
-        # v_reshaped = v.reshape(gv.shape)
-        gu = gu / 2. * (W - 1) # * (u_reshaped > 0) * (u_reshaped < (W - 1))
-        gv = gv / 2. * (H - 1) #* (v_reshaped > 0) * (v_reshaped < (H - 1))
-
         ggrid = xp.concatenate((gu[:, None], gv[:, None]), axis=1)
-
-        # --- gx
-        # if xp is numpy:
-        #     scatter_add = numpy.add.at
-        # else:
-        #     scatter_add = xp.scatter_add
         gx = xp.zeros_like(x)
-        # gy = gy.reshape(B, C, -1)
-        # for b in range(B):
-        #     scatter_add(gx[b], (slice(None), v0[b], u0[b]),
-        #                 gy[b] * wu1[b] * wv1[b])
-        #     scatter_add(gx[b], (slice(None), v0[b], u1[b]),
-        #                 gy[b] * wu0[b] * wv1[b])
-        #     scatter_add(gx[b], (slice(None), v1[b], u0[b]),
-        #                 gy[b] * wu1[b] * wv0[b])
-        #     scatter_add(gx[b], (slice(None), v1[b], u1[b]),
-        #                 gy[b] * wu0[b] * wv0[b])
-        gx = gx
         return gx, ggrid
 
 
