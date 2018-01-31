@@ -9,6 +9,8 @@ import cupy as cp
 from models import utils
 from models.utils import *
 from models.spational_transformer_sampler_interp import spatial_transformer_sampler_interp
+from models.hoge import spatial_transformer_sampler
+
 
 def euler2mat(r, xp=np):
     """Converts euler angles to rotation matrix
@@ -123,10 +125,10 @@ def cam2pixel(cam_coords, proj, im_shape):
     N, _, H, W = im_shape
     unnormalized_pixel_coords = F.batch_matmul(proj, cam_coords)
     z = unnormalized_pixel_coords[:, 2:3, :] + 1e-10
-    # p_s_x = (unnormalized_pixel_coords[:, 0:1] / z) / ((W - 1) / 2.) - 1
-    # p_s_y = (unnormalized_pixel_coords[:, 1:2] / z) / ((H - 1) / 2.) - 1
-    # p_s_xy = F.concat((p_s_x, p_s_y), axis=1)
-    p_s_xy = unnormalized_pixel_coords[:, :2] / F.broadcast_to(z, (N, 2, H*W))
+    p_s_x = (unnormalized_pixel_coords[:, 0:1] / z) / ((W - 1) / 2.) - 1
+    p_s_y = (unnormalized_pixel_coords[:, 1:2] / z) / ((H - 1) / 2.) - 1
+    p_s_xy = F.concat((p_s_x, p_s_y), axis=1)
+    # p_s_xy = unnormalized_pixel_coords[:, :2] / F.broadcast_to(z, (N, 2, H*W))
     p_s_xy = F.reshape(p_s_xy, (N, 2, H, W))
     return p_s_xy
 
@@ -184,6 +186,7 @@ def projective_inverse_warp(imgs, depthes, poses, K):
 
     # start, stop = create_timer()
     # transformed_img = F.spatial_transformer_sampler(imgs, src_pixel_coords)
-    transformed_img = spatial_transformer_sampler_interp(imgs, src_pixel_coords)
+    transformed_img = spatial_transformer_sampler(imgs, src_pixel_coords)
+    # transformed_img = spatial_transformer_sampler_interp(imgs, src_pixel_coords)
     # print_timer(start, stop, 'spatial transformer')
     return transformed_img
