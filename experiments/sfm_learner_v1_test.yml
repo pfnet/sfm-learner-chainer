@@ -20,7 +20,7 @@ dataset:
     name: KittiRawTransformed
     args:
       data_dir: ../dataset/KITTI_formatted
-      # data_dir: /home/user/.chainer/dataset/pfnet/chainer/raw
+      # data_dir: /mnt/sakuradata10-striped/datasets/KITTI_formatted
       split: train
       seq_len: 3
 
