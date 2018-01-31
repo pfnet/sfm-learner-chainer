@@ -69,16 +69,16 @@ class SFMLearner(chainer.Chain):
         for ns in range(n_scales):
             # start2, stop2 = create_timer()
             curr_img_size = (H // (2 ** ns), W // (2 ** ns))
-            curr_tgt_img = F.resize_images(tgt_img, curr_img_size)
-            curr_src_imgs = F.resize_images(stacked_src_imgs, curr_img_size)
+            curr_tgt_img = F.resize_images(tgt_img, curr_img_size).data
+            curr_src_imgs = F.resize_images(stacked_src_imgs, curr_img_size).data
 
-            curr_pred_depthes = pred_depthes[ns]
             # Smoothness regularization
             if self.smooth_reg:
                 # start3, stop3 = create_timer()
                 smooth_loss += (self.smooth_reg / (2 ** ns)) * \
                                    self.compute_smooth_loss(pred_disps[ns])
                 # print_timer(start3, stop3, 'smooth')
+            curr_pred_depthes = pred_depthes[ns]
             curr_pred_depthes = F.reshape(curr_pred_depthes, (batchsize, 1, -1))
             curr_pred_depthes = F.broadcast_to(curr_pred_depthes,
                                                (batchsize, 3, curr_pred_depthes.shape[2]))
@@ -90,14 +90,15 @@ class SFMLearner(chainer.Chain):
             for i in range(n_sources):
                 # Inverse warp the source image to the target image frame
                 # start2, stop2 = create_timer()
+                # print(curr_src_imgs.data.copy())
                 curr_proj_img = projective_inverse_warp(
                     curr_src_imgs[:, i*3:(i+1)*3],
                     curr_pred_depthes,
                     pred_poses[i],
-                    curr_intrinsics)
+                    curr_intrinsics.copy())
                 # sum_time += print_timer(start2, stop2, None)
                 curr_proj_error = F.absolute(curr_proj_img - curr_tgt_img)
-                # curr_proj_error *= (curr_proj_img.data != 0.)
+                curr_proj_error *= (curr_proj_img.data != 0.)
                 # explainability regularization
                 if self.exp_reg:
                     pred_exp_logits = curr_pred_mask[:, i:i+1, :, :]
@@ -109,7 +110,6 @@ class SFMLearner(chainer.Chain):
                 else:
                     pixel_loss += F.mean(curr_proj_error)
             # print_timer(start3, stop3, 'sources')
-        # print(pixel_loss)
         # print("############## summary #############")
         # print_timer(start, stop, 'for')
         # print("Sum transform", sum_time)

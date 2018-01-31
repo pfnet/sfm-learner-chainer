@@ -34,6 +34,7 @@ class KittiRawDataset(dataset.DatasetMixin):
         self.dir_pathes = [os.path.join(data_dir, index) for index in dir_indexes]
         self.seq_len = seq_len
         self.samples = self.crawl_folders()
+        print('{} num sample'.format(split), len(self.samples))
 
     def crawl_folders(self):
         sequence_set = []
@@ -61,8 +62,6 @@ class KittiRawDataset(dataset.DatasetMixin):
 
     def save_img(self, tgt_img, ref_imgs):
         import cv2
-        print('tgt path', sample['tgt'])
-        print('src pathes', sample['ref_imgs'])
         cv2.imwrite('tgt.png', tgt_img.transpose(1, 2, 0).astype('i'))
         cv2.imwrite('src1.png', ref_imgs[0].transpose(1, 2, 0).astype('i'))
         cv2.imwrite('src2.png', ref_imgs[1].transpose(1, 2, 0).astype('i'))

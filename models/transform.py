@@ -163,7 +163,7 @@ def projective_inverse_warp(imgs, depthes, poses, K):
     Return:
         transformed images of shape [N, 3, H, W]
     """
-    xp = cuda.get_array_module(imgs.data)
+    xp = cuda.get_array_module(imgs)
     im_shape = imgs.shape
     N, _, H, W = im_shape
 
@@ -185,8 +185,8 @@ def projective_inverse_warp(imgs, depthes, poses, K):
     # print_timer(start, stop, 'cam2pixel')
 
     # start, stop = create_timer()
-    # transformed_img = F.spatial_transformer_sampler(imgs, src_pixel_coords)
-    transformed_img = spatial_transformer_sampler(imgs, src_pixel_coords)
+    transformed_img = F.spatial_transformer_sampler(imgs, src_pixel_coords)
+    # transformed_img = spatial_transformer_sampler(imgs, src_pixel_coords)
     # transformed_img = spatial_transformer_sampler_interp(imgs, src_pixel_coords)
     # print_timer(start, stop, 'spatial transformer')
     return transformed_img

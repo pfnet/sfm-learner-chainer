@@ -82,13 +82,14 @@ def get_multi_scale_intrinsics(intrinsics, n_scales):
            multi_intrinsics: Multi scale intrinsics.
     """
     multi_intrinsics = []
+
     for s in range(n_scales):
         fx = intrinsics[0, 0]/(2 ** s)
         fy = intrinsics[1, 1]/(2 ** s)
         cx = intrinsics[0, 2]/(2 ** s)
         cy = intrinsics[1, 2]/(2 ** s)
-        intrinsics = make_intrinsics_matrix(fx, fy, cx, cy)
-        multi_intrinsics.append(intrinsics)
+        down_intrinsics = make_intrinsics_matrix(fx, fy, cx, cy)
+        multi_intrinsics.append(down_intrinsics)
     return multi_intrinsics
 
 def _transform(inputs, n_scale=4, ):
