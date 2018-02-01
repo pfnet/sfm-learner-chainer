@@ -112,7 +112,7 @@ def pixel2cam(depthes, pixel_coords, intrinsics, im_shape, xp=np):
     cam_coords = F.concat((cam_coords, xp.ones((N, 1, H*W), 'f')), axis=1)
     return cam_coords
 
-def cam2pixel(cam_coords, proj, im_shape):
+def cam2pixel(cam_coords, proj, im_shape, xp=np):
     """Conveter from camera coordinates to pixel coordinates.
 
     Args:
@@ -128,6 +128,11 @@ def cam2pixel(cam_coords, proj, im_shape):
     p_s_x = (unnormalized_pixel_coords[:, 0:1] / z) / ((W - 1) / 2.) - 1
     p_s_y = (unnormalized_pixel_coords[:, 1:2] / z) / ((H - 1) / 2.) - 1
     p_s_xy = F.concat((p_s_x, p_s_y), axis=1)
+
+    hoge = xp.ones_like(p_s_xy.data)
+    is_outside = (p_s_xy.data > -1) * (p_s_xy.data < 1)
+    hoge[~is_outside] = 2
+    p_s_xy *= hoge
     # p_s_xy = unnormalized_pixel_coords[:, :2] / F.broadcast_to(z, (N, 2, H*W))
     p_s_xy = F.reshape(p_s_xy, (N, 2, H, W))
     return p_s_xy
@@ -181,7 +186,8 @@ def projective_inverse_warp(imgs, depthes, poses, K):
     # print_timer(start, stop, 'pixel2cam')
 
     # start, stop = create_timer()
-    src_pixel_coords = cam2pixel(cam_coords, proj_tgt_cam_to_src_pixel, im_shape)
+    src_pixel_coords = cam2pixel(cam_coords, proj_tgt_cam_to_src_pixel,
+                                 im_shape, xp=xp)
     # print_timer(start, stop, 'cam2pixel')
 
     # start, stop = create_timer()

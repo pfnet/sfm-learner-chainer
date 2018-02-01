@@ -1,6 +1,6 @@
 end_trigger: [200000, "iteration"]
-results: results/basic_no_mask
-gpus: [1]
+results: results/a
+gpus: [0]
 mode: Train
 seed: 1
 
@@ -11,7 +11,7 @@ model:
     path: #
     download: # https://0000_model.npz
   architecture:
-    smooth_reg: 0.5
+    smooth_reg: 0.
     exp_reg: 0.
 
 dataset:
@@ -52,8 +52,8 @@ optimizer:
     alpha: 0.0002
     beta1: 0.9
     beta2: 0.999
-  #hook:
-  #  WeightDecay: 0.0002
+  hook:
+    WeightDecay: 0.0002
 
 extension:
   #Evaluator:
@@ -62,7 +62,7 @@ extension:
   snapshot:
       trigger: [200000, "iteration"]
   snapshot_object:
-      trigger: [10000, "iteration"]
+      trigger: [5000, "iteration"]
   LogReport:
     trigger: [100, "iteration"]
   PrintReport:

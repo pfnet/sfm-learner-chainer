@@ -36,8 +36,7 @@ class PoseNet(chainer.Chain):
                                            pad=3, stride=1)
 
     def encode(self, x):
-        h = x
-        h = self.activation(self.c1(h))
+        h = self.activation(self.c1(x))
         h = self.activation(self.c2(h))
         h = self.activation(self.c3(h))
         h = self.activation(self.c4(h))
@@ -45,13 +44,12 @@ class PoseNet(chainer.Chain):
         return h
 
     def pred_pose(self, x):
-        h = x
-        h = self.activation(self.pose1(h))
+        h = self.activation(self.pose1(x))
         h = self.activation(self.pose2(h))
         h = self.poseout(h)
         # Empirically the authors found that scaling by a small constant
         # facilitates training.
-        h = 0.01 * F.mean(h, (2, 3))
+        h = 0.01 * F.mean(h, (2, 3)) # Batch, 6 * n_sources
         h = F.split_axis(h, self.n_sources, 1)
         return h
 

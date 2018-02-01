@@ -50,34 +50,26 @@ class SFMLearner(chainer.Chain):
            Return:
                loss (Variable).
         """
-        # all_start, all_stop = create_timer()
         batchsize, n_sources, _, H, W = src_imgs.shape
         stacked_src_imgs = self.xp.reshape(src_imgs, (batchsize, -1, H, W))
-        #start, stop = create_timer()
         pred_disps = self.disp_net(tgt_img)
-        #print_timer(start, stop, 'depth')
         pred_depthes = [1. / d for d in pred_disps]
         do_exp = self.exp_reg is not None and self.exp_reg > 0
-        #start, stop = create_timer()
         pred_poses, pred_maskes = self.pose_net(tgt_img, stacked_src_imgs,
                                                 do_exp=do_exp)
-        #print_timer(start, stop, 'pose')
         smooth_loss, exp_loss, pixel_loss = 0, 0, 0
         n_scales = len(pred_depthes)
         start, stop = create_timer()
         sum_time = 0
         for ns in range(n_scales):
-            # start2, stop2 = create_timer()
             curr_img_size = (H // (2 ** ns), W // (2 ** ns))
             curr_tgt_img = F.resize_images(tgt_img, curr_img_size).data
             curr_src_imgs = F.resize_images(stacked_src_imgs, curr_img_size).data
 
             # Smoothness regularization
             if self.smooth_reg:
-                # start3, stop3 = create_timer()
                 smooth_loss += (self.smooth_reg / (2 ** ns)) * \
                                    self.compute_smooth_loss(pred_disps[ns])
-                # print_timer(start3, stop3, 'smooth')
             curr_pred_depthes = pred_depthes[ns]
             curr_pred_depthes = F.reshape(curr_pred_depthes, (batchsize, 1, -1))
             curr_pred_depthes = F.broadcast_to(curr_pred_depthes,
@@ -85,20 +77,20 @@ class SFMLearner(chainer.Chain):
             curr_intrinsics = intrinsics[:, ns]
             if self.exp_reg:
                 curr_pred_mask = pred_maskes[ns]
-            # print_timer(start2, stop2, 'prepare')
-            # start3, stop3 = create_timer()
             for i in range(n_sources):
                 # Inverse warp the source image to the target image frame
-                # start2, stop2 = create_timer()
-                # print(curr_src_imgs.data.copy())
                 curr_proj_img = projective_inverse_warp(
                     curr_src_imgs[:, i*3:(i+1)*3],
                     curr_pred_depthes,
                     pred_poses[i],
-                    curr_intrinsics.copy())
-                # sum_time += print_timer(start2, stop2, None)
+                    curr_intrinsics)
                 curr_proj_error = F.absolute(curr_proj_img - curr_tgt_img)
-                curr_proj_error *= (curr_proj_img.data != 0.)
+                hoge = (curr_proj_img.data == 0).prod(1, keepdims=True).astype('bool')
+                hoge = self.xp.broadcast_to(hoge, curr_proj_error.shape)
+                curr_proj_error = F.where(hoge,
+                                          self.xp.zeros(curr_proj_error.shape, dtype='f'),
+                                          curr_proj_error)
+                # curr_proj_error *= (1 - (curr_proj_img.data == 0).prod(1, keepdims=True))
                 # explainability regularization
                 if self.exp_reg:
                     pred_exp_logits = curr_pred_mask[:, i:i+1, :, :]
@@ -109,11 +101,6 @@ class SFMLearner(chainer.Chain):
                     pixel_loss += F.mean(curr_proj_error * pred_exp)
                 else:
                     pixel_loss += F.mean(curr_proj_error)
-            # print_timer(start3, stop3, 'sources')
-        # print("############## summary #############")
-        # print_timer(start, stop, 'for')
-        # print("Sum transform", sum_time)
-        # print_timer(all_start, all_stop,'ALL')
         total_loss = pixel_loss + smooth_loss + exp_loss
         chainer.report({'total_loss': total_loss}, self)
         chainer.report({'pixel_loss': pixel_loss}, self)

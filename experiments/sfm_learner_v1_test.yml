@@ -1,6 +1,6 @@
 end_trigger: [200000, "iteration"]
 results: results/basic
-gpus: [1]
+gpus: [0]
 mode: Test
 seed: 1
 
@@ -8,7 +8,7 @@ model:
   module: models.base_model
   name: SFMLearner
   pretrained_model:
-    path: ./results/basic1/voxelnet_140000
+    path: ./results/debug/sfm_learner_15000
     download: # https://0000_model.npz
   architecture:
     smooth_reg: 0.
