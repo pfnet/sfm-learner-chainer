@@ -47,8 +47,8 @@ def data_augmentation(tgt_img, src_imgs, intrinsics):
     # Random cropping
     def random_cropping(imgs, intrinsics, out_h, out_w):
         batch_size, _, in_h, in_w = imgs.shape
-        offset_y = int(np.random.randint(0, in_h - out_h + 1)[0])
-        offset_x = int(np.random.randint(0, in_w - out_w + 1)[0])
+        offset_y = int(np.random.randint(0, in_h - out_h + 1))
+        offset_x = int(np.random.randint(0, in_w - out_w + 1))
         imgs = imgs[:, :, offset_y:offset_y+out_h, offset_x:offset_x+out_w]
         fx = intrinsics[0,0]
         fy = intrinsics[1,1]
