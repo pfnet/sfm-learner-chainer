@@ -24,11 +24,9 @@ class KittiDepthEvaluation(dataset.DatasetMixin):
         data_dir (string): Path to the dataset directory. The directory should
             contain at least three directories, :obj:`training`, `testing`
             and `ImageSets`.
-        split ({'train', 'val'}): Select from dataset splits used in
-            KiTTi Raw Dataset.
     """
-    def __init__(self, data_dir=None, test_files=None, seq_len=3, split='train',
-                 height=128, width=416, resize=True, 
+    def __init__(self, data_dir=None, test_files=None, seq_len=3,
+                 height=128, width=416, resize=True,
                  min_depth=1e-3, max_depth=80):
         with open(os.path.join(test_files), 'r') as f:
             file_pathes = f.read().split('\n')

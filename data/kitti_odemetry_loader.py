@@ -3,27 +3,29 @@ from path import Path
 import scipy.misc
 
 
-class KittiRawLoader(object):
-    def __init__(self,
-                 dataset_dir,
-                 static_frames_file=None,
-                 img_height=128,
-                 img_width=416,
-                 seq_length=3):
+class KittiOdemetryLoader(object):
+    def __init__(self, dataset_dir, static_frames_file=None,
+                 img_height=128, img_width=416, seq_length=3,
+                 train_list=None, val_list=None):
         dir_path = Path(__file__).realpath().dirname()
-        test_scene_file = dir_path/'test_scenes_eigen.txt'
         static_frames_file = Path(static_frames_file)
-        with open(test_scene_file, 'r') as f:
-            test_scenes = f.readlines()
-        self.test_scenes = [t[:-1] for t in test_scenes]
         self.dataset_dir = Path(dataset_dir)
         self.img_height = img_height
         self.img_width = img_width
         self.cam_ids = ['02', '03']
-        self.date_list = ['2011_09_26', '2011_09_28', '2011_09_29',
-                          '2011_09_30', '2011_10_03']
+        self.data_list = []
+        self.parse_data_list(train_list, 'train')
+        # self.parse_data_list(val_list, 'val')
+        self.scenes = []
+        self.scenes_info = {}
         self.collect_train_folders()
         self.collect_static_frames(static_frames_file)
+
+    def parse_data_list(self, data_list, label):
+        with open(data_list, 'r') as f:
+            data_list = f.readlines()
+        data_list = [[label] + d[:-1].split(" ") for d in data_list]
+        self.data_list += data_list
 
     def collect_static_frames(self, static_frames_file):
         with open(static_frames_file, 'r') as f:
@@ -39,12 +41,10 @@ class KittiRawLoader(object):
             self.static_frames[drive].append(curr_fid)
 
     def collect_train_folders(self):
-        self.scenes = []
-        for date in self.date_list:
-            drive_set = (self.dataset_dir/date).dirs()
-            for dr in drive_set:
-                if dr.name[:-5] not in self.test_scenes:
-                    self.scenes.append(dr)
+        for data in self.data_list:
+            drive_set = self.dataset_dir/data[1]/data[2]
+            self.scenes.append(drive_set)
+            self.scenes_info[str(drive_set.name)] = [data[0], data[3], data[4]]
 
     def collect_scenes(self, drive):
         train_scenes = []
@@ -63,11 +63,17 @@ class KittiRawLoader(object):
             train_scenes.append(scene_data)
         return train_scenes
 
-    def get_scene_imgs(self, scene_data):
+    def get_scene_imgs(self, scene_data, from_speed=False):
         drive = str(scene_data['dir'].name)
-        for (i,frame_id) in enumerate(scene_data['frame_id']):
-            if (drive not in self.static_frames.keys()) or (frame_id not in self.static_frames[drive]):
-                yield self.load_image(scene_data, i)[0], frame_id
+        scene_info = self.scenes_info[drive]
+        start = int(scene_info[1])
+        end = int(scene_info[2])
+        for (i, frame_id) in enumerate(scene_data['frame_id']):
+            if (drive not in self.static_frames.keys()) or \
+                   (frame_id not in self.static_frames[drive]):
+                if int(frame_id) >= start and int(frame_id) <= end:
+                    # print(frame_id, start, end)
+                    yield self.load_image(scene_data, i)[0], frame_id
 
     def get_intrinsics(self, scene_data, zoom_x, zoom_y):
         calib_file = scene_data['dir'].parent/'calib_cam_to_cam.txt'

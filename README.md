@@ -9,9 +9,16 @@ TF code: https://github.com/tinghuiz/SfMLearner
 ## Preparing training data
 In order to train the model using the provided code, the data needs to be formatted in a certain manner.
 
+### Depth
 For [KiTTI](http://www.cvlibs.net/datasets/kitti/raw_data.php), first download the dataset using this [script](http://www.cvlibs.net/download.php?file=raw_data_downloader.zip) provided on the official website, and then run the following command
 ```bash
-python data/prepare_train_data.py /path/to/KITTI_raw --dataset-format kitti --static-frames ./data/static_frames.txt  --dump-root /path/to/KITTI_formatted --height 128 --width 416 --num-threads 8
+python data/prepare_train_data.py /path/to/KITTI_raw --dataset-format kitti_raw --static-frames ./data/static_frames.txt  --dump-root /path/to/KITTI_formatted --height 128 --width 416 --num-threads 8
+```
+
+### Odemetry
+Remove the '2011_09_26_drive_0067' sequence because there is no data at server.
+```bash
+python data/prepare_train_data.py /path/to/KITTI_raw --dataset-format kitti_odem --static-frames ./data/static_frames.txt  --dump-root /path/to/KITTI_formatted --height 128 --width 416 --num-threads 8
 ```
 
 ## Training using KiTTI Raw Dataset
