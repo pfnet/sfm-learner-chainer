@@ -3,7 +3,7 @@ from path import Path
 import scipy.misc
 
 
-class KittiOdemetryLoader(object):
+class KittiOdometryLoader(object):
     def __init__(self, dataset_dir, static_frames_file=None,
                  img_height=128, img_width=416, seq_length=3,
                  train_list=None, val_list=None):

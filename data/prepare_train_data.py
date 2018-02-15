@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("dataset_dir", metavar='DIR',
                     help='path to original dataset')
 parser.add_argument("--dataset-format", type=str, required=True,
-                    choices=["kitti_raw", "kitti_odem", "cityscapes"])
+                    choices=["kitti_raw", "kitti_odom", "cityscapes"])
 parser.add_argument("--static-frames", default=None,
                     help="list of imgs to discard for being static, if not set will discard them based on speed \
                     (careful, on KITTI some frames have incorrect speed)")
@@ -58,22 +58,18 @@ def main():
                                      img_height=args.height,
                                      img_width=args.width)
 
-    elif args.dataset_format == "kitti_odem":
-        from kitti_odemetry_loader import KittiOdemetryLoader
-        data_loader = KittiOdemetryLoader(args.dataset_dir,
+    elif args.dataset_format == "kitti_odom":
+        from kitti_odometry_loader import KittiOdometryLoader
+        data_loader = KittiOdometryLoader(args.dataset_dir,
                                           static_frames_file=args.static_frames,
                                           img_height=args.height,
                                           img_width=args.width,
                                           seq_length=5,
-                                          train_list="./data/odemetry_train.txt",
-                                          val_list="./data/odemetry_val.txt")
+                                          train_list="./data/odometry_train.txt",
+                                          val_list="./data/odometry_val.txt")
 
     elif args.dataset_format == 'cityscapes':
         raise("Not Implemented Error")
-        # from cityscapes_loader import cityscapes_loader
-        # data_loader = cityscapes_loader(args.dataset_dir,
-        #                                 img_height=args.height,
-        #                                 img_width=args.width)
     else:
         raise("Please use assigned argument by dataset_format")
 
@@ -86,7 +82,7 @@ def main():
     with open(args.dump_root / 'train.txt', 'w') as tf:
         with open(args.dump_root / 'val.txt', 'w') as vf:
             for s in tqdm(subfolders):
-                if np.random.random() < 0.1 and args.dataset_format != "kitti_odem":
+                if np.random.random() < 0.1 and args.dataset_format != "kitti_odom":
                     vf.write('{}\n'.format(s.name))
                 else:
                     tf.write('{}\n'.format(s.name))

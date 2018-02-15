@@ -15,7 +15,7 @@ def load_as_float_norm(path):
 
 
 
-class KittiOdemetryDataset(dataset.DatasetMixin):
+class KittiOdometryDataset(dataset.DatasetMixin):
 
     """Dataset class for a task on `Kitti Raw Dataset`_.
 

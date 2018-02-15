@@ -15,21 +15,39 @@ For [KiTTI](http://www.cvlibs.net/datasets/kitti/raw_data.php), first download t
 python data/prepare_train_data.py /path/to/KITTI_raw --dataset-format kitti_raw --static-frames ./data/static_frames.txt  --dump-root /path/to/KITTI_formatted --height 128 --width 416 --num-threads 8
 ```
 
-### Odemetry
-Remove the '2011_09_26_drive_0067' sequence because there is no data at server.
+### Odometry
+This script generates only training data.  
+Remove '2011_09_26_drive_0067' sequence because there is no data at kitti server.
 ```bash
-python data/prepare_train_data.py /path/to/KITTI_raw --dataset-format kitti_odem --static-frames ./data/static_frames.txt  --dump-root /path/to/KITTI_formatted --height 128 --width 416 --num-threads 8
+python data/prepare_train_data.py /path/to/KITTI_raw --dataset-format kitti_odom --static-frames ./data/static_frames.txt  --dump-root /path/to/KITTI_formatted --height 128 --width 416 --num-threads 8
 ```
 
 ## Training using KiTTI Raw Dataset
 Once the data are formatted following the above instructions, you should be able to train the model by running the following command
+
+### Depth
 ```bash
 python3 train.py experiments/sfm_learner_v1.yml
 ```
 
-## Evaluation using KiTTI Raw Dataset
-Once you have model trained, you can obtain the single-view depth predictions on the KITTI eigen test split formatted properly for evaluation by running
+### Odometry
 ```bash
+python3 train.py experiments/sfm_learner_v1_odom.yml
+```
+
+## Evaluation using KiTTI Raw Dataset
+If you finish training models using above scripts, you should be able to evaluate your trained model.
+
+### Depth
+You can obtain the single-view depth predictions on the KITTI eigen test split formatted properly for evaluation by running.
+```bash
+python evaluate.py experiments/sfm_learner_v1_eval.yml
+```
+
+### Odometry
+You can obtain the 5-snipped odometry predictions on the KITTI odometry dataset.
+```bash
+# TODO
 python evaluate.py experiments/sfm_learner_v1_eval.yml
 ```
 
@@ -38,8 +56,8 @@ python evaluate.py experiments/sfm_learner_v1_eval.yml
 python inference.py experiments/sfm_learner_v1_test.yml
 ```
 
-## トレーニングする際の注意点
-- とりあえず、kittiのraw datasetを用いてトレーニングを行います。
-- フレーム数: Depth訓練の際は3, Poseは5を利用。中心画像をTargetとして利用（論文参照）
-- KITTIデータでは、左右両方の画像を独立なデータとして利用
-- Optical Flowを用いて動きが見られないデータを削除(static_frames.txt)
+## Visualize odometry using KiTTI Odometry Dataset
+```bash
+# TODO
+python inference.py experiments/sfm_learner_v1_test.yml
+```

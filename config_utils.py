@@ -43,6 +43,9 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('config', default='default.yml', type=str, help='configure file')
     parser.add_argument('--img_path', default='./', type=str, help='image path')
+    parser.add_argument('--eval_mode', default='depth', type=str, help='mode')
+    # parser.add_argument('--img_path', default='./', type=str, help='image path')
+
     args = parser.parse_args()
     config = yaml.load(open(args.config))
 
@@ -54,7 +57,7 @@ def parse_args():
     if config["mode"] == "Test":
         chainer.global_config.train = False
         chainer.global_config.enable_backprop = False
-        return config, args.img_path
+        return config, args
 
     subprocess.check_call(["mkdir", "-p", config["results"]])
     shutil.copy(args.config, os.path.join(config['results'], args.config.split('/')[-1]))

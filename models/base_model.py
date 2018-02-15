@@ -28,7 +28,7 @@ class SFMLearner(chainer.Chain):
 
     def __init__(self, config, pretrained_model=None):
         super(SFMLearner, self).__init__(
-			pose_net = PoseNet(),
+			pose_net = PoseNet(n_sources=config['seq_len']),
             disp_net = DispNet())
 
         self.smooth_reg = config['smooth_reg']

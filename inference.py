@@ -47,7 +47,7 @@ def gray2rgb(im, cmap='gray'):
 
 def demo_sfm_learner():
     """Demo sfm_learner."""
-    config, img_path = parse_args()
+    config, args = parse_args()
     model = get_model(config["model"])
     devices = parse_devices(config['gpus'], config['updater']['name'])
     test_data = load_dataset_test(config["dataset"])
