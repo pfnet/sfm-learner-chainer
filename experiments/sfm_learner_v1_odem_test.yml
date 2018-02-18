@@ -1,0 +1,37 @@
+end_trigger: [200000, "iteration"]
+results: results/basic
+gpus: [0]
+mode: Test
+seed: 1
+
+model:
+  module: models.base_model
+  name: SFMLearner
+  pretrained_model:
+    path: ./results/odem/model.npz
+    download: # https://0000_model.npz
+  architecture:
+    smooth_reg: 0.
+    exp_reg: 0.
+
+dataset:
+  test:
+    module: datasets.kitti.kitti_raw_transformed
+    name: KittiRawTransformed
+    args:
+      data_dir: ../dataset/KITTI_odem
+      # data_dir: /mnt/sakuradata10-striped/datasets/KITTI_formatted
+      split: train
+      seq_len: 5
+
+updater:
+  name: StandardUpdater
+
+iterator:
+  name: SerialIterator
+  train_batchsize: 4
+  test_batchsize: 4
+  # args:
+  #  n_processes: 4
+  #  n_prefetch: 2
+  #  shared_mem: 60000000
