@@ -57,6 +57,7 @@ python evaluate.py experiments/sfm_learner_v1_odom_eval.yml --eval_mode odom
 
 ## Inference using KiTTI Raw Dataset
 ### Depth
+You could download pretrained model from [here](https://www.dropbox.com/s/i42vo9u0ns4ibcp/exp02smooth01.npz)
 ```bash
 # For kitti formatted dataset
 python inference.py experiments/sfm_learner_v1_test.yml
