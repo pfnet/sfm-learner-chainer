@@ -28,7 +28,7 @@ class SFMLearner(chainer.Chain):
 
     def __init__(self, config, pretrained_model=None):
         super(SFMLearner, self).__init__(
-			pose_net = PoseNet(n_sources=config['seq_len']),
+			pose_net = PoseNet(n_sources=config['seq_len'] - 1),
             disp_net = DispNet())
 
         self.smooth_reg = config['smooth_reg']
@@ -154,6 +154,5 @@ class SFMLearner(chainer.Chain):
                 pred_pose, pred_maskes = self.pose_net(tgt_img,
                                                        stacked_src_imgs,
                                                        do_exp=is_exp)
-                pred_mask = pred_maskes[0]
             # #print_timer(#start, stop, sentence="Inference Time")
             return pred_depth, pred_pose, pred_mask

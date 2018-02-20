@@ -13,6 +13,7 @@ model:
   architecture:
     smooth_reg: 0.1
     exp_reg: 0.2
+    seq_len: 5
 
 dataset:
   train:

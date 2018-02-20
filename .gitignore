@@ -12,3 +12,6 @@ build
 *.caffemodel
 *.npz*
 *.png
+images/
+pose_data
+weights

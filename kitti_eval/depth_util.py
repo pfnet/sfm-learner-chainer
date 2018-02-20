@@ -21,7 +21,7 @@ def compute_depth_errors(gt, pred):
 
     return np.array([abs_rel, sq_rel, rmse, rmse_log, a1, a2, a3], dtype='f')
 
-def print_stats(sum_errors):
+def print_depth_stats(sum_errors):
     error_names = ['abs_rel','sq_rel','rms','log_rms','a1','a2','a3']
     print("Results with scale factor determined by GT/prediction ratio (like the original paper) : ")
     print("{:>10}, {:>10}, {:>10}, {:>10}, {:>10}, {:>10}, {:>10}".format(*error_names))

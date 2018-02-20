@@ -43,7 +43,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('config', default='default.yml', type=str, help='configure file')
     parser.add_argument('--img_path', default='./', type=str, help='image path')
-    parser.add_argument('--eval_mode', default='depth', type=str, help='mode')
+    parser.add_argument('--eval_mode', default='depth',
+                        choices=["depth", "odom"], help="Evaluation mode")
     # parser.add_argument('--img_path', default='./', type=str, help='image path')
 
     args = parser.parse_args()

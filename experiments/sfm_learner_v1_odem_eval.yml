@@ -1,6 +1,6 @@
 end_trigger: [200000, "iteration"]
 results: results/basic
-gpus: [0]
+gpus: []
 mode: Test
 seed: 1
 
@@ -8,7 +8,7 @@ model:
   module: models.base_model
   name: SFMLearner
   pretrained_model:
-    path: ./results/odem/model.npz
+    path: #./results/odem/model.npz
     download: # https://0000_model.npz
   architecture:
     smooth_reg: 0.
@@ -21,7 +21,9 @@ dataset:
     name: KittiOdometryEvaluation
     args:
       data_dir: ../dataset/kitti_raw
-      test_files: # TODO./kitti_eval/test_files_eigen.txt
+      test_files: ./data/odometry_val.txt
+      gt_dir: ./kitti_eval/pose_data/ground_truth/09
+      seq_list: 9
       # data_dir: /home/user/.chainer/dataset/pfnet/chainer/raw
       seq_len: 5
 
@@ -30,8 +32,8 @@ updater:
 
 iterator:
   name: SerialIterator
-  train_batchsize: 4
-  test_batchsize: 4
+  train_batchsize: 1
+  test_batchsize: 1
   # args:
   #  n_processes: 4
   #  n_prefetch: 2

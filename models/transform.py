@@ -5,12 +5,8 @@ from chainer import functions as F
 from chainer import links as L
 from chainer import cuda
 import numpy as np
-import cupy as cp
 from models import utils
 from models.utils import *
-from models.spational_transformer_sampler_interp import spatial_transformer_sampler_interp
-from models.hoge import spatial_transformer_sampler
-
 
 def euler2mat(r, xp=np):
     """Converts euler angles to rotation matrix
@@ -77,7 +73,7 @@ def proj_tgt_to_src(vec, K, N, xp=np, use_cpu=True):
         Variable: Projection matrix.
     """
     is_transfer = False
-    if xp == cp and use_cpu:
+    if xp != np and use_cpu:
         vec = gpu2cpu(vec)
         K = chainer.cuda.to_cpu(K)
         xp = np
