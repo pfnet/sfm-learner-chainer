@@ -14,7 +14,12 @@ from chainer import training
 from chainer import functions as F
 
 import cv2
+from scipy.misc import imread
+
 from config_utils import *
+import matplotlib as mpl
+mpl.rcParams['axes.xmargin'] = 0
+mpl.rcParams['axes.ymargin'] = 0
 import matplotlib.pyplot as plt
 
 chainer.cuda.set_max_workspace_size(1024 * 1024 * 1024)
@@ -45,21 +50,40 @@ def gray2rgb(im, cmap='gray'):
     rgb_img = np.delete(rgba_img, 3, 2)
     return rgb_img
 
-def demo_sfm_learner():
-    """Demo sfm_learner."""
-    config, args = parse_args()
-    model = get_model(config["model"])
-    devices = parse_devices(config['gpus'], config['updater']['name'])
+def demo_by_image(model, args, gpu_id):
+    print("Inference for specified image")
+    input_img = imread(args.img_path).astype(np.float32)
+    input_img = cv2.resize(input_img, (args.width, args.height))
+    img = input_img / (255. * 0.5) - 1
+    img = img.transpose(2, 0, 1)[None, :]
+    if gpu_id is not None:
+        img = chainer.cuda.to_gpu(img, device=gpu_id)
+    pred_depth, _, _ = model.inference(img, None, None, None,
+                                       is_depth=True, is_pose=False)
+    depth = chainer.cuda.to_cpu(pred_depth.data[0, 0])
+    depth = normalize_depth_for_display(depth)
+    fig, axes = plt.subplots(1, 2)
+    axes[0].imshow(input_img / 255)
+    axes[1].imshow(depth)
+    axes[0].axis('off')
+    axes[1].axis('off')
+    if args.save != -1:
+        plt.savefig("output_{}.png".format(args.save),
+                    bbox_inches="tight", pad_inches=0.0, transparent=True)
+    plt.show()
+    # cv2.imwrite("input.png", (input_img))
+    # cv2.imwrite("depth.png", depth * 255 )
+    print("Complete")
+
+def demo_by_dataset(model, config, gpu_id):
     test_data = load_dataset_test(config["dataset"])
     test_iter = create_iterator_test(test_data,
                                      config['iterator'])
-    model.to_gpu(devices['main'])
-
     dataset_config = config['dataset']['test']['args']
     index = 0
     for batch in test_iter:
         input_img = batch[0][0].transpose(1, 2, 0)
-        batch = chainer.dataset.concat_examples(batch, devices['main'])
+        batch = chainer.dataset.concat_examples(batch, gpu_id)
         pred_depth, pred_pose, pred_mask = model.inference(*batch)
         depth = chainer.cuda.to_cpu(pred_depth.data[0, 0])
         depth = normalize_depth_for_display(depth)
@@ -74,6 +98,21 @@ def demo_sfm_learner():
         cv2.imwrite("exp_{}.png".format(index), mask)
         print(index)
         index += 1
+
+def demo_sfm_learner():
+    """Demo sfm_learner."""
+    config, args = parse_args()
+    model = get_model(config["model"])
+    devices = parse_devices(config['gpus'], config['updater']['name'])
+    gpu_id = None if devices is None else devices['main']
+    if devices:
+        chainer.cuda.get_device_from_id(gpu_id).use()
+        model.to_gpu(gpu_id)
+
+    if args.img_path:
+        demo_by_image(model, args, gpu_id)
+    else:
+        demo_by_dataset(model, config, gpu_id)
 
 def main():
     demo_sfm_learner()

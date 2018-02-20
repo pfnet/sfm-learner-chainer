@@ -1,6 +1,4 @@
-end_trigger: [200000, "iteration"]
-results: results/basic
-gpus: [0]
+gpus: []
 mode: Test
 seed: 1
 
@@ -8,7 +6,7 @@ model:
   module: models.base_model
   name: SFMLearner
   pretrained_model:
-    path: ./results/debug/sfm_learner_15000
+    path: ./weights/exp02smooth01/model.npz
     download: # https://0000_model.npz
   architecture:
     smooth_reg: 0.

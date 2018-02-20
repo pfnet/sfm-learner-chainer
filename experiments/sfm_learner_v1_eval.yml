@@ -1,6 +1,4 @@
-end_trigger: [200000, "iteration"]
-results: results/eval
-gpus: [0]
+gpus: []
 mode: Test
 seed: 1
 min_depth: 0.001

@@ -29,7 +29,6 @@ def compute_odom_errors(pred_pose, gt_pose):
     rmse = np.sqrt(np.sum(alignment_error ** 2))/len(pred_xyz)
     return rmse
 
-
 def rot2quat(R):
     rz, ry, rx = mat2euler(R)
     qw, qx, qy, qz = euler2quat(rz, ry, rx)

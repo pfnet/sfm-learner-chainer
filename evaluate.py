@@ -70,7 +70,12 @@ def evaluate_depth(config, args):
     test_data = load_dataset_test(config["dataset"])
     test_iter = create_iterator_test(test_data,
                                      config['iterator'])
-    model.to_gpu(devices['main'])
+
+    gpu_id = None if devices is None else devices['main']
+    if devices:
+        chainer.cuda.get_device_from_id(gpu_id).use()
+        model.to_gpu(gpu_id)
+
     min_depth = test_data.min_depth
     max_depth = test_data.max_depth
     batchsize = config['iterator']['test_batchsize']
@@ -79,7 +84,7 @@ def evaluate_depth(config, args):
     num_data = len(test_iter.dataset)
     sum_errors = np.array([0. for i in range(7)], dtype='f')
     for batch in test_iter:
-        batch = chainer.dataset.concat_examples(batch, devices['main'])
+        batch = chainer.dataset.concat_examples(batch, gpu_id)
         tgt_img, ref_imgs, _, gt_depth, mask = batch
         pred_depth, _, _ = model.inference(tgt_img, ref_imgs,
                                            None, None,

@@ -6,6 +6,10 @@ See the [project webpage](https://people.eecs.berkeley.edu/~tinghuiz/projects/Sf
 
 TF code: https://github.com/tinghuiz/SfMLearner
 
+<img src="./imgs/output_1.png"/>  
+<img src="./imgs/output_2.png"/>  
+<img src="./imgs/output_3.png"/>  
+
 ## Preparing training data
 In order to train the model using the provided code, the data needs to be formatted in a certain manner.
 
@@ -39,25 +43,22 @@ python3 train.py experiments/sfm_learner_v1_odom.yml
 If you finish training models using above scripts, you should be able to evaluate your trained model.
 
 ### Depth
-You can obtain the single-view depth predictions on the KITTI eigen test split formatted properly for evaluation by running.
+You can obtain the single-view depth predictions on the KITTI eigen test split formatted properly for evaluation by running.  
+You could download pretrained model from [here](https://www.dropbox.com/s/i42vo9u0ns4ibcp/exp02smooth01.npz)
 ```bash
 python evaluate.py experiments/sfm_learner_v1_eval.yml
 ```
 
 ### Odometry
-You can obtain the 5-snipped odometry predictions on the KITTI odometry dataset.
+You can obtain the 5-snipped odometry predictions on the KITTI odometry dataset. This scripts use kitti raw dataset directly.
 ```bash
-# TODO
-python evaluate.py experiments/sfm_learner_v1_eval.yml
+python evaluate.py experiments/sfm_learner_v1_odom_eval.yml --eval_mode odom
 ```
 
 ## Inference using KiTTI Raw Dataset
 ```bash
+# For kitti formatted dataset
 python inference.py experiments/sfm_learner_v1_test.yml
-```
-
-## Visualize odometry using KiTTI Odometry Dataset
-```bash
-# TODO
-python inference.py experiments/sfm_learner_v1_test.yml
+# For a image
+python inference.py experiments/sfm_learner_v1_test.yml --img_path /path/to/img --save 1 --width 416 --height 128
 ```

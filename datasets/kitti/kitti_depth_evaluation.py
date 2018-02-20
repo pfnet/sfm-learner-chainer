@@ -33,7 +33,6 @@ class KittiDepthEvaluation(dataset.DatasetMixin):
 
         self.base_dir = data_dir
         self.file_pathes = file_pathes[:-1] if not file_pathes[-1] else file_pathes
-        # self.file_pathes = [os.path.join(data_dir, path) for path in file_pathes]
         self.seq_len = seq_len
         self.demi_len = (self.seq_len - 1) // 2
         self.read_scene_data()
@@ -65,6 +64,10 @@ class KittiDepthEvaluation(dataset.DatasetMixin):
         return len(self.imgs_file_list)
 
     def get_example(self, i):
+        if i % 100 == 0 and i != 0:
+            percentage = i * 100 / len(self.imgs_file_list)
+            print("Progress: {0:d}%".format(int(percentage)))
+
         calib_dir = self.calib_dir_list[i]
         imgs_path = self.imgs_file_list[i]
         tgt_img_path = imgs_path[0]

@@ -144,13 +144,13 @@ class SFMLearner(chainer.Chain):
         with chainer.using_config('train', False), \
                  chainer.function.no_backprop_mode():
             # #start, stop = create_timer()
-            batchsize, n_sources, _, H, W = src_imgs.shape # tgt_img.shape
-            stacked_src_imgs = self.xp.reshape(src_imgs, (batchsize, -1, H, W))
-
             if is_depth:
                 pred_depth = 1 / self.disp_net(tgt_img)[0]
 
             if is_pose:
+                batchsize, n_sources, _, H, W = src_imgs.shape
+                stacked_src_imgs = self.xp.reshape(src_imgs,
+                                                   (batchsize, -1, H, W))
                 pred_pose, pred_maskes = self.pose_net(tgt_img,
                                                        stacked_src_imgs,
                                                        do_exp=is_exp)
