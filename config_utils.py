@@ -160,8 +160,10 @@ def create_iterator(train_data, test_data, config, devices, updater_name):
     else:
         train_iter = Iterator(train_data, config['train_batchsize'], **args)
 
-    args['repeat'] = False
-    test_iter = Iterator(test_data, config['test_batchsize'], **args)
+    test_iter = None
+    if test_data is not None:
+        args['repeat'] = False
+        test_iter = Iterator(test_data, config['test_batchsize'], **args)
     return train_iter, test_iter
 
 def parse_devices(gpus, updater_name):
@@ -200,10 +202,12 @@ def load_dataset(config):
     cl = get_class(train_config['module'])
     train_loader = getattr(cl, train_config['name'])
     train_data = train_loader(**train_config['args'])
-    test_config = config['valid']
-    cl = get_class(test_config['module'])
-    test_loader = getattr(cl, test_config['name'])
-    test_data = test_loader(**test_config['args'])
+    test_data = None
+    if 'valid' in config.keys():
+        test_config = config['valid']
+        cl = get_class(test_config['module'])
+        test_loader = getattr(cl, test_config['name'])
+        test_data = test_loader(**test_config['args'])
     return train_data, test_data
 
 def get_model(config):

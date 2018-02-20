@@ -1,5 +1,3 @@
-end_trigger: [200000, "iteration"]
-results: results/basic
 gpus: [0]
 mode: Test
 seed: 1
@@ -21,7 +19,9 @@ dataset:
     name: KittiOdometryEvaluation
     args:
       data_dir: ../dataset/kitti_raw
-      test_files: # TODO./kitti_eval/test_files_eigen.txt
+      test_files: ./data/odometry_val.txt
+      gt_dir: ./kitti_eval/pose_data/ground_truth/09
+      seq_list: 9
       # data_dir: /home/user/.chainer/dataset/pfnet/chainer/raw
       seq_len: 5
 

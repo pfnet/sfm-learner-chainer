@@ -1,5 +1,5 @@
 end_trigger: [200000, "iteration"]
-results: results/odem
+results: results/odom
 gpus: [0]
 mode: Train
 seed: 1
@@ -20,20 +20,20 @@ dataset:
     module: datasets.kitti.kitti_raw_transformed
     name: KittiRawTransformed
     args:
-      data_dir: ../dataset/KITTI_odem
+      data_dir: ../dataset/KITTI_odom
       # data_dir: /mnt/sakuradata10-striped/datasets/KITTI_formatted
       split: train
       seq_len: 5
       n_scale: 4
-
-  valid:
-    module: datasets.kitti.kitti_raw_dataset
-    name: KittiRawDataset
-    args:
-      data_dir: ../dataset/KITTI_odem
-      # data_dir: /mnt/sakuradata10-striped/datasets/KITTI_formatted
-      split: train
-      seq_len: 5
+      
+  # valid:
+  #   module: datasets.kitti.kitti_raw_dataset
+  #   name: KittiRawDataset
+  #   args:
+  #     data_dir: ../dataset/KITTI_odom
+  #     # data_dir: /mnt/sakuradata10-striped/datasets/KITTI_formatted
+  #     split: train
+  #     seq_len: 5
 
 updater:
   name: StandardUpdater

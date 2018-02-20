@@ -56,9 +56,17 @@ python evaluate.py experiments/sfm_learner_v1_odom_eval.yml --eval_mode odom
 ```
 
 ## Inference using KiTTI Raw Dataset
+### Depth
 ```bash
 # For kitti formatted dataset
 python inference.py experiments/sfm_learner_v1_test.yml
 # For a image
 python inference.py experiments/sfm_learner_v1_test.yml --img_path /path/to/img --save 1 --width 416 --height 128
+```
+
+### odometry
+```bash
+# TODO
+# For kitti formatted dataset
+python inference.py experiments/sfm_learner_v1_odom_test.yml
 ```

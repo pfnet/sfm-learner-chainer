@@ -1,5 +1,5 @@
 end_trigger: [200000, "iteration"]
-results: results/a
+results: results/depth
 gpus: [0]
 mode: Train
 seed: 1
@@ -25,15 +25,15 @@ dataset:
       split: train
       seq_len: 3
       n_scale: 4
-
-  valid:
-    module: datasets.kitti.kitti_raw_dataset
-    name: KittiRawDataset
-    args:
-      data_dir: ../dataset/KITTI_formatted
-      # data_dir: /mnt/sakuradata10-striped/datasets/KITTI_formatted
-      split: val
-      seq_len: 3
+      
+  # valid:
+  #   module: datasets.kitti.kitti_raw_dataset
+  #   name: KittiRawDataset
+  #   args:
+  #     data_dir: ../dataset/KITTI_formatted
+  #     # data_dir: /mnt/sakuradata10-striped/datasets/KITTI_formatted
+  #     split: val
+  #     seq_len: 3
 
 updater:
   name: StandardUpdater
