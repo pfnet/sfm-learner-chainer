@@ -87,7 +87,7 @@ def demo_by_dataset(model, config, gpu_id):
         pred_depth, pred_pose, pred_mask = model.inference(*batch)
         depth = chainer.cuda.to_cpu(pred_depth.data[0, 0])
         depth = normalize_depth_for_display(depth)
-        mask = chainer.cuda.to_cpu(pred_mask.data[0, 0, 0])
+        mask = chainer.cuda.to_cpu(pred_mask[0].data[0, 0])
         cv2.imwrite("input_{}.png".format(index), (input_img + 1) / 2 * 255)
         cv2.imwrite("depth_{}.png".format(index), depth * 255 )
         per = np.percentile(mask, 99)

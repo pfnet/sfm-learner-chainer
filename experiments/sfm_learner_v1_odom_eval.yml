@@ -1,4 +1,4 @@
-gpus: []
+gpus: [1]
 mode: Test
 seed: 1
 
@@ -20,8 +20,8 @@ dataset:
     args:
       data_dir: ../dataset/kitti_raw
       test_files: ./data/odometry_val.txt
-      gt_dir: ./kitti_eval/pose_data/ground_truth/09
-      seq_list: 9
+      gt_dir: ./kitti_eval/pose_data/ground_truth/10
+      seq_list: 10
       # data_dir: /home/user/.chainer/dataset/pfnet/chainer/raw
       seq_len: 5
 

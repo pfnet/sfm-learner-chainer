@@ -11,6 +11,7 @@ from tqdm import tqdm
 import datetime
 from chainer import functions as F
 from chainer import dataset
+import cv2
 
 def load_as_float_norm(path):
     img = imread(path).astype(np.float32).transpose(2, 0, 1)
@@ -53,7 +54,7 @@ class KittiOdometryEvaluation(dataset.DatasetMixin):
     def parse_gt_dirs(self, gt_dir):
         self.gt_files = glob.glob(os.path.join(gt_dir, "*.txt"))
         self.gt_files.sort()
-        if !len(self.gt_files):
+        if not len(self.gt_files):
             print("There is not groudtruth data under {}".format(gt_dir))
 
     def read_scene_data(self, data_list):
@@ -87,9 +88,7 @@ class KittiOdometryEvaluation(dataset.DatasetMixin):
         tgt_img_path = imgs_path[0]
         src_imgs_path = imgs_path[1]
         tgt_img = load_as_float_norm(tgt_img_path)
-        tgt_img = cv2.resize(tgt_img, (416, 128))
         src_imgs = [load_as_float_norm(path) for path in src_imgs_path]
-        src_imgs = [cv2.resize(src_img, 416, 128) for src_img in src_imgs]
         gt_pose = read_file_list(self.gt_files[i])
         orig_shape = tgt_img.shape[:2]
         tgt_img = F.resize_images(tgt_img[None], (self.height, self.width)).data[0]
@@ -112,7 +111,7 @@ def read_file_list(filename):
     dict -- dictionary of (stamp,data) tuples
 
     """
-    with open(file_name, 'r') as f:
+    with open(filename, 'r') as f:
         data = f.read()
         lines = data.replace(","," ").replace("\t"," ").split("\n")
         data_list = [[v.strip() for v in line.split(" ") if v.strip()!=""] for line in lines if len(line)>0 and line[0]!="#"]

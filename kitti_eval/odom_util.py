@@ -247,11 +247,11 @@ def euler2quat(z=0, y=0, x=0, isRadian=True):
                      cx*cy*sz + sx*cz*sy])
 
 def pose_vec_to_mat(vec):
-    tx = vec[0]
-    ty = vec[1]
-    tz = vec[2]
+    tx = vec[3]
+    ty = vec[4]
+    tz = vec[5]
     trans = np.array([tx, ty, tz]).reshape((3,1))
-    rot = euler2mat(vec[5], vec[4], vec[3])
+    rot = euler2mat(z=vec[2], y=vec[1], x=vec[0])
     Tmat = np.concatenate((rot, trans), axis=1)
     hfiller = np.array([0, 0, 0, 1]).reshape((1,4))
     Tmat = np.concatenate((Tmat, hfiller), axis=0)
