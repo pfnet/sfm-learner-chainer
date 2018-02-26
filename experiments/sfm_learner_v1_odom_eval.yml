@@ -6,7 +6,7 @@ model:
   module: models.base_model
   name: SFMLearner
   pretrained_model:
-    path: # ./weights/exp02smooth01/model.npz
+    path: model.npz # ./weights/exp02smooth01/model.npz
     download: # https://0000_model.npz
   architecture:
     smooth_reg: 0.
