@@ -1,4 +1,4 @@
-gpus: [0]
+gpus: []
 mode: Test
 seed: 1
 
@@ -6,7 +6,7 @@ model:
   module: models.base_model
   name: SFMLearner
   pretrained_model:
-    path: ./results/odem/model.npz
+    path: #./results/odem/model.npz
     download: # https://0000_model.npz
   architecture:
     smooth_reg: 0.

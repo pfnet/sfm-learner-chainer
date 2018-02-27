@@ -46,8 +46,10 @@ def parse_args():
     parser.add_argument('--width', type=int, default='416', help='input width')
     parser.add_argument('--height', type=int, default='128', help='input height')
     parser.add_argument('--save', type=int, default=-1, help="Save results or not")
-    parser.add_argument('--eval_mode', default='depth',
-                        choices=["depth", "odom"], help="Evaluation mode")
+    parser.add_argument('--mode', default='depth',
+                        choices=["depth", "odom"], help="mode")
+    parser.add_argument('--gt_file', type=str)
+    parser.add_argument('--pred_file', type=str)
 
     args = parser.parse_args()
     config = yaml.load(open(args.config))

@@ -24,9 +24,9 @@ def compute_odom_errors(pred_pose, gt_pose):
     pred_xyz += offset[None,:]
 
     # Optimize the scaling factor
-    scale = np.sum(gt_xyz * pred_xyz)/np.sum(pred_xyz ** 2)
+    scale = np.sum(gt_xyz * pred_xyz) / np.sum(pred_xyz ** 2)
     alignment_error = pred_xyz * scale - gt_xyz
-    rmse = np.sqrt(np.sum(alignment_error ** 2))/len(pred_xyz)
+    rmse = np.sqrt(np.sum(alignment_error ** 2)) / len(pred_xyz)
     return rmse
 
 def rot2quat(R):

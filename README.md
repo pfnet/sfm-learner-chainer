@@ -52,7 +52,7 @@ python evaluate.py experiments/sfm_learner_v1_eval.yml
 ### Odometry
 You can obtain the 5-snipped odometry predictions on the KITTI odometry dataset. This scripts use kitti raw dataset directly.
 ```bash
-python evaluate.py experiments/sfm_learner_v1_odom_eval.yml --eval_mode odom
+python evaluate.py experiments/sfm_learner_v1_odom_eval.yml --mode odom
 ```
 
 ## Inference using KiTTI Raw Dataset

@@ -50,7 +50,7 @@ def gray2rgb(im, cmap='gray'):
     rgb_img = np.delete(rgba_img, 3, 2)
     return rgb_img
 
-def demo_by_image(model, args, gpu_id):
+def demo_depth_by_image(model, args, gpu_id):
     print("Inference for specified image")
     input_img = imread(args.img_path).astype(np.float32)
     input_img = cv2.resize(input_img, (args.width, args.height))
@@ -75,11 +75,10 @@ def demo_by_image(model, args, gpu_id):
     # cv2.imwrite("depth.png", depth * 255 )
     print("Complete")
 
-def demo_by_dataset(model, config, gpu_id):
+def demo_depth_by_dataset(model, config, gpu_id):
     test_data = load_dataset_test(config["dataset"])
     test_iter = create_iterator_test(test_data,
                                      config['iterator'])
-    dataset_config = config['dataset']['test']['args']
     index = 0
     for batch in test_iter:
         input_img = batch[0][0].transpose(1, 2, 0)
@@ -99,6 +98,72 @@ def demo_by_dataset(model, config, gpu_id):
         print(index)
         index += 1
 
+def convert_eval_format(pred_pose, gt_pose, base_pose=None):
+    pred_data = []
+    first_pose = pose_vec_to_mat(pred_pose[0])
+    for p in range(len(gt_pose)):
+        this_pose = pose_vec_to_mat(pred_pose[p])
+        this_pose = np.dot(first_pose, np.linalg.inv(this_pose))
+        if base_pose is not None:
+            this_pose = np.dot(base_pose, np.linalg.inv(this_pose))
+        tx = this_pose[0, 3]
+        ty = this_pose[1, 3]
+        tz = this_pose[2, 3]
+        rot = this_pose[:3, :3]
+        qw, qx, qy, qz = rot2quat(rot)
+        pred_data.append([gt_pose[p][0], tx, ty, tz, qx, qy, qz, qw])
+    base_pose = this_pose
+    return np.array(pred_data, dtype='f'), base_pose
+
+def demo_odom_by_dataset(model, config, gpu_id):
+    test_data = load_dataset_test(config["dataset"])
+    test_iter = create_iterator_test(test_data,
+                                     config['iterator'])
+    index = 0
+    num_data = len(test_iter.dataset)
+    print("Start inference")
+    ### 初期値からの相対座標を得るためには…
+    # 1. quat2mat
+    # 2. translationとrotationで
+    # 3. オイラー角ではそのまま足し算、引き算で良いのでは？
+    #    たぶん。。
+    base_pose = None
+    for i, batch in enumerate(test_iter):
+        if i % 4 != 0:
+            continue
+        batch = chainer.dataset.concat_examples(batch, gpu_id)
+        tgt_img, ref_imgs, _, gt_pose = batch
+        _, pred_pose, _ = model.inference(tgt_img, ref_imgs,
+                                          None, None, is_depth=False,
+                                          is_pose=True, is_exp=False)
+        pred_pose = chainer.cuda.to_cpu(F.concat(pred_pose, axis=0).data)
+        pred_pose = np.insert(pred_pose, 2, np.zeros((1, 6)), axis=0)
+        gt_pose = chainer.cuda.to_cpu(gt_pose[0])
+        pred_pose, base_pose = convert_eval_format(pred_pose, gt_pose,
+                                                   base_pose=base_pose)
+        if i == 0:
+            all_trajectory = pred_pose
+            continue
+        all_trajectory = np.concatenate(all_trajectory, pred_pose[:, 1:])
+        print(all_trajectory)
+
+def visualize_odom(gt_file=None, pred_file=None):
+    data = {'gt_label': gt_file, 'pred_label': pred_file}
+    for label, file_name in data.items():
+        if file_name:
+            x = []
+            z = []
+            with open(gt_file, 'r') as f:
+                gt_data = f.readlines()
+            for data in gt_data:
+                data = data.split(" ")
+                xyz = data[1:4] * 100
+                x.append(xyz[0])
+                z.append(xyz[2])
+            plt.plot(x, z, label=label)
+            plt.legend()
+            plt.show()
+
 def demo_sfm_learner():
     """Demo sfm_learner."""
     config, args = parse_args()
@@ -109,10 +174,16 @@ def demo_sfm_learner():
         chainer.cuda.get_device_from_id(gpu_id).use()
         model.to_gpu(gpu_id)
 
-    if args.img_path:
-        demo_by_image(model, args, gpu_id)
-    else:
-        demo_by_dataset(model, config, gpu_id)
+    if args.mode == "depth":
+        if args.img_path:
+            demo_depth_by_image(model, args, gpu_id)
+        else:
+            demo_depth_by_dataset(model, config, gpu_id)
+    elif args.mode == "odom":
+        if args.gt_file or args.pred_file:
+            visualize_odom(args.gt_file, args.pred_file)
+        else:
+            demo_odom_by_dataset(model, config, gpu_id)
 
 def main():
     demo_sfm_learner()
