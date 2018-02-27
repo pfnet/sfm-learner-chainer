@@ -120,34 +120,8 @@ def convert_hoge(pred_pose, gt_pose, base_pose=None):
             this_pose = np.dot(base_pose, this_pose)
         pred_data = hoge(pred_data, this_pose, gt_pose)
     base_pose = this_pose
-    return np.array(pred_data, dtype='f'), np.array(orig_data, dtype='f'),
-           base_pose
-
-def convert_mat(pose):
-    mat = np.zeros((4, 4), dtype='f')
-    rot = np.array([pose[7], pose[4], pose[5], pose[6]], dtype='f')
-    mat[:3, :3] = quat2mat(rot)
-    mat[0, 3] = pose[1]
-    mat[1, 3] = pose[2]
-    mat[2, 3] = pose[3]
-    mat[3, 3] = 1
-    return mat
-
-def convert_hoge2(pred_pose, gt_pose, base_pose=None):
-    pred_data = []
-    first_pose = convert_mat(pred_pose[0])
-    for p in range(len(gt_pose)):
-        this_pose = convert_mat(pred_pose[p])
-        if base_pose is not None:
-            this_pose = np.dot(base_pose, this_pose)
-        tx = this_pose[0, 3]
-        ty = this_pose[1, 3]
-        tz = this_pose[2, 3]
-        rot = this_pose[:3, :3]
-        qw, qx, qy, qz = rot2quat(rot)
-        pred_data.append([gt_pose[p][0], tx, ty, tz, qx, qy, qz, qw])
-    base_pose = this_pose
-    return np.array(pred_data, dtype='f'), base_pose
+    return (np.array(pred_data, dtype='f'), np.array(orig_data, dtype='f'),
+            base_pose)
 
 def demo_odom_by_dataset(model, config, gpu_id):
     test_data = load_dataset_test(config["dataset"])
@@ -157,6 +131,7 @@ def demo_odom_by_dataset(model, config, gpu_id):
     num_data = len(test_iter.dataset)
     print("Start inference")
     base_pose = None
+    scale_list = []
     for i, batch in enumerate(test_iter):
         if i % 4 != 0:
             continue
@@ -172,12 +147,13 @@ def demo_odom_by_dataset(model, config, gpu_id):
         pred_pose, orig_pose, base_pose = convert_hoge(pred_pose, gt_pose,
                                                        base_pose=base_pose)
         scale = np.sum(gt_pose[:, 1:4] * orig_pose[:, 1:4]) / np.sum(orig_pose[:, 1:4] ** 2)
-        pred_pose[:, 1:4] *= scale
+        scale_list.append(scale)
         if i == 0:
             all_trajectory = pred_pose
             continue
         all_trajectory = np.concatenate((all_trajectory, pred_pose[1:, :]), axis=0)
     print(all_trajectory[:, :])
+    all_trajectory[:, 1:4] *= np.mean(scale)
     np.savetxt('test.txt', all_trajectory, delimiter=' ')
 
 def visualize_odom(gt_file=None, pred_file=None):
