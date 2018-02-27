@@ -85,9 +85,9 @@ class SFMLearner(chainer.Chain):
                     pred_poses[i],
                     curr_intrinsics)
                 curr_proj_error = F.absolute(curr_proj_img - curr_tgt_img)
-                hoge = (curr_proj_img.data == 0).prod(1, keepdims=True).astype('bool')
-                hoge = self.xp.broadcast_to(hoge, curr_proj_error.shape)
-                curr_proj_error = F.where(hoge,
+                mask = (curr_proj_img.data == 0).prod(1, keepdims=True).astype('bool')
+                mask = self.xp.broadcast_to(mask, curr_proj_error.shape)
+                curr_proj_error = F.where(mask,
                                           self.xp.zeros(curr_proj_error.shape, dtype='f'),
                                           curr_proj_error)
                 # curr_proj_error *= (1 - (curr_proj_img.data == 0).prod(1, keepdims=True))

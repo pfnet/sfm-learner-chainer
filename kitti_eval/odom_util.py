@@ -270,3 +270,29 @@ def convert_eval_format(pred_pose, gt_pose):
         qw, qx, qy, qz = rot2quat(rot)
         pred_data.append([gt_pose[p][0], tx, ty, tz, qx, qy, qz, qw])
     return np.array(pred_data, dtype='f')
+
+
+def convert_trajectory(pred_pose, gt_pose, base_pose=None):
+    def convert_format(result_list, this_pose, gt_pose):
+        tx = this_pose[0, 3]
+        ty = this_pose[1, 3]
+        tz = this_pose[2, 3]
+        rot = this_pose[:3, :3]
+        qw, qx, qy, qz = rot2quat(rot)
+        result_list.append([gt_pose[p][0], tx, ty, tz, qx, qy, qz, qw])
+        return result_list
+
+    pred_data = []
+    orig_data = []
+    first_pose = pose_vec_to_mat(pred_pose[0])
+    for p in range(len(gt_pose)):
+        this_pose = pose_vec_to_mat(pred_pose[p])
+        this_pose = np.dot(first_pose, np.linalg.inv(this_pose))
+        orig_data = convert_format(orig_data, this_pose, gt_pose)
+        if base_pose is not None:
+            this_pose = np.dot(base_pose, this_pose)
+        pred_data = convert_format(pred_data, this_pose, gt_pose)
+    base_pose = this_pose
+    pred_data = np.array(pred_data, dtype='f')
+    orig_data = np.array(orig_data, dtype='f')
+    return pred_data, orig_data, base_pose

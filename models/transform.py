@@ -125,11 +125,10 @@ def cam2pixel(cam_coords, proj, im_shape, xp=np):
     p_s_y = (unnormalized_pixel_coords[:, 1:2] / z) / ((H - 1) / 2.) - 1
     p_s_xy = F.concat((p_s_x, p_s_y), axis=1)
 
-    hoge = xp.ones_like(p_s_xy.data)
-    is_outside = (p_s_xy.data > -1) * (p_s_xy.data < 1)
-    hoge[~is_outside] = 2
-    p_s_xy *= hoge
-    # p_s_xy = unnormalized_pixel_coords[:, :2] / F.broadcast_to(z, (N, 2, H*W))
+    mask = xp.ones_like(p_s_xy.data)
+    is_inside = (p_s_xy.data > -1) * (p_s_xy.data < 1)
+    mask[~is_inside] = 2
+    p_s_xy *= mask
     p_s_xy = F.reshape(p_s_xy, (N, 2, H, W))
     return p_s_xy
 

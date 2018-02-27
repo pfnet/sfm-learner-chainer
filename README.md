@@ -6,9 +6,12 @@ See the [project webpage](https://people.eecs.berkeley.edu/~tinghuiz/projects/Sf
 
 TF code: https://github.com/tinghuiz/SfMLearner
 
+<p align="center">
 <img src="./imgs/output_1.png"/>  
 <img src="./imgs/output_2.png"/>  
 <img src="./imgs/output_3.png"/>  
+<img src="./imgs/odom_10.png" width=300, height=240/>
+</p>
 
 ## Preparing training data
 In order to train the model using the provided code, the data needs to be formatted in a certain manner.
@@ -67,7 +70,8 @@ python inference.py experiments/sfm_learner_v1_test.yml --img_path /path/to/img 
 
 ### odometry
 ```bash
-# TODO
-# For kitti formatted dataset
-python inference.py experiments/sfm_learner_v1_odom_test.yml
+# Create predicted trajectory
+python inference.py experiments/sfm_learner_v1_odom_test.yml --mode odom
+# Visualize trajectories
+python inference.py experiments/sfm_learner_v1_odom_test.yml --mode odom --gt_file ./kitti_eval/pose_data/ground_truth/10_full.txt --pred_file ./test.txt
 ```
