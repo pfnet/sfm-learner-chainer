@@ -10,7 +10,8 @@ TF code: https://github.com/tinghuiz/SfMLearner
 <img src="./imgs/output_1.png"/>  
 <img src="./imgs/output_2.png"/>  
 <img src="./imgs/output_3.png"/>  
-<img src="./imgs/odom_10.png" width=300, height=240/>
+<img src="./imgs/result_9.png" width=300, height=240/>
+<img src="./imgs/result_10.png" width=300, height=240/>
 </p>
 
 ## Preparing training data
@@ -47,7 +48,7 @@ If you finish training models using above scripts, you should be able to evaluat
 
 ### Depth
 You can obtain the single-view depth predictions on the KITTI eigen test split formatted properly for evaluation by running.  
-You could download pretrained model from [here](https://www.dropbox.com/s/i42vo9u0ns4ibcp/exp02smooth01.npz)
+You could download pretrained model from [here](https://www.dropbox.com/s/v1t4b1vao9ucqva/depth_exp02smooth01.npz)
 ```bash
 python evaluate.py experiments/sfm_learner_v1_eval.yml
 ```
@@ -58,9 +59,13 @@ You can obtain the 5-snipped odometry predictions on the KITTI odometry dataset.
 python evaluate.py experiments/sfm_learner_v1_odom_eval.yml --mode odom
 ```
 
+| abs_rel | sq_rel | rms | log_rms | a1 | a2 | a3 |
+|:--------------:|:---------------:|:---------------:|:---------------:|:---------------:|:---------------:|:---------------:|
+| **0.1779** | **1.3594** | **6.2696** | **0.2570** | **0.7390** | **0.9075** | **0.9647** |
+
 ## Inference using KiTTI Raw Dataset
 ### Depth
-You could download pretrained model from [here](https://www.dropbox.com/s/i42vo9u0ns4ibcp/exp02smooth01.npz)
+You could download pretrained model from [here](https://www.dropbox.com/s/v1t4b1vao9ucqva/depth_exp02smooth01.npz)
 ```bash
 # For kitti formatted dataset
 python inference.py experiments/sfm_learner_v1_test.yml

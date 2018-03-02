@@ -122,26 +122,23 @@ def demo_odom_by_dataset(model, config, gpu_id):
         pred_pose, orig_pose, base_pose = convert_trajectory(
                                               pred_pose, gt_pose,
                                               base_pose=base_pose)
-        scale = np.sum(gt_pose[:, 1:4] * orig_pose[:, 1:4]) / np.sum(orig_pose[:, 1:4] ** 2)
-        scale_list.append(scale)
         if i == 0:
             all_trajectory = pred_pose
             continue
         all_trajectory = np.concatenate((all_trajectory, pred_pose[1:, :]), axis=0)
-    all_trajectory[:, 1:4] *= np.mean(scale)
     np.savetxt('test.txt', all_trajectory, delimiter=' ')
 
 def visualize_odom(args, gt_file=None, pred_file=None):
-    data = {'gt_label': gt_file, 'pred_label': pred_file}
-    for label, file_name in data.items():
+    data_dict = {'gt_label': gt_file, 'pred_label': pred_file}
+    for label, file_name in data_dict.items():
         if file_name:
             x = []
             z = []
             with open(file_name, 'r') as f:
-                gt_data = f.readlines()
-            for data in gt_data:
-                data = data.split(" ")
-                xyz = data[1:4] * 100
+                data = f.readlines()
+            for d in data:
+                d = d.split(" ")
+                xyz = d[1:4]
                 x.append(xyz[0])
                 z.append(xyz[2])
             plt.plot(x, z, label=label)

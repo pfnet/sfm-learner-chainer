@@ -71,17 +71,17 @@ class KittiDepthEvaluation(dataset.DatasetMixin):
         calib_dir = self.calib_dir_list[i]
         imgs_path = self.imgs_file_list[i]
         tgt_img_path = imgs_path[0]
-        src_imgs_path = imgs_path[1]
+        # src_imgs_path = imgs_path[1]
         velo_path = self.velo_file_list[i]
         tgt_img = load_as_float_norm(tgt_img_path)
-        src_imgs = [load_as_float_norm(path) for path in src_imgs_path]
+        # src_imgs = [load_as_float_norm(path) for path in src_imgs_path]
         orig_shape = tgt_img.shape[:2]
         gt_depth = generate_depth_map(calib_dir, velo_path, tgt_img.shape[1:],
                                       self.cams[i])
         tgt_img = F.resize_images(tgt_img[None], (self.height, self.width)).data[0]
-        src_imgs = F.resize_images(np.array(src_imgs, dtype='f'), (self.height, self.width)).data
+        # src_imgs = F.resize_images(np.array(src_imgs, dtype='f'), (self.height, self.width)).data
         mask = generate_mask(gt_depth, self.min_depth, self.max_depth)
-        return tgt_img, src_imgs, [], gt_depth, mask
+        return tgt_img, [], [], gt_depth, mask
 
 width_to_focal = dict()
 width_to_focal[1242] = 721.5377
