@@ -1,0 +1,81 @@
+end_trigger: [200000, "iteration"]
+results: results/depth
+gpus: [0]
+mode: Train
+seed: 1
+
+model:
+  module: models.base_model
+  name: SFMLearner
+  pretrained_model:
+    path: #
+    download: # https://0000_model.npz
+  architecture:
+    smooth_reg: 0.1
+    exp_reg: 0
+    seq_len: 3
+    ssim_rate: 0.15
+
+dataset:
+  train:
+    module: datasets.kitti.kitti_raw_transformed
+    name: KittiRawTransformed
+    args:
+      data_dir: ../dataset/KITTI_formatted
+      # data_dir: /mnt/sakuradata10-striped/datasets/KITTI_formatted
+      split: train
+      seq_len: 3
+      n_scale: 4
+
+  # valid:
+  #   module: datasets.kitti.kitti_raw_dataset
+  #   name: KittiRawDataset
+  #   args:
+  #     data_dir: ../dataset/KITTI_formatted
+  #     # data_dir: /mnt/sakuradata10-striped/datasets/KITTI_formatted
+  #     split: val
+  #     seq_len: 3
+
+updater:
+  name: StandardUpdater
+
+iterator:
+  name: MultiprocessIterator
+  train_batchsize: 4
+  test_batchsize: 4
+  args:
+   n_processes: 4
+   n_prefetch: 2
+   shared_mem: 60000000
+
+optimizer:
+  name: Adam
+  args:
+    alpha: 0.0002
+    beta1: 0.9
+    beta2: 0.999
+  hook:
+    WeightDecay: 0.0002
+
+extension:
+  #Evaluator:
+  #  name: Evaluator
+  #  trigger: [1, 'epoch']
+  snapshot:
+      trigger: [200000, "iteration"]
+  snapshot_object:
+      trigger: [5000, "iteration"]
+  LogReport:
+    trigger: [100, "iteration"]
+  PrintReport:
+    name:
+      epoch
+      iteration
+      main/total_loss
+      main/pixel_loss
+      main/smooth_loss
+      main/exp_loss
+    trigger: [100, "iteration"]
+  ProgressBar:
+      update_interval: 10
+  observe_lr:
