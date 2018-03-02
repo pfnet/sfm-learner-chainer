@@ -45,7 +45,7 @@ def evaluate_odom(config, args):
     index = 0
     num_data = len(test_iter.dataset)
     odom_error_all = []
-    print("Start evaluation")
+    print("Start odometry evaluation")
     for batch in test_iter:
         batch = chainer.dataset.concat_examples(batch, gpu_id)
         tgt_img, ref_imgs, _, gt_pose = batch
@@ -83,6 +83,7 @@ def evaluate_depth(config, args):
     index = 0
     num_data = len(test_iter.dataset)
     sum_errors = np.array([0. for i in range(7)], dtype='f')
+    print("Start depth evaluation")
     for batch in test_iter:
         batch = chainer.dataset.concat_examples(batch, gpu_id)
         tgt_img, ref_imgs, _, gt_depth, mask = batch
@@ -104,9 +105,9 @@ def evaluate_depth(config, args):
 
 def main():
     config, args = parse_args()
-    if args.eval_mode == "depth":
+    if args.mode == "depth":
         evaluate_depth(config, args)
-    elif args.eval_mode == "odom":
+    elif args.mode == "odom":
         evaluate_odom(config, args)
 
 if __name__ == '__main__':
