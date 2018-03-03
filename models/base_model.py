@@ -134,7 +134,7 @@ class SFMLearner(chainer.Chain):
         sigma_y = F.average_pooling_2d(y ** 2, 3, 1, 1).data - mu_y ** 2
         sigma_xy = F.average_pooling_2d(x * y, 3, 1, 1) - mu_x * mu_y
 
-        SSIM_n = (2 * mu_x * mu_y * c1) * (2 * sigma_xy + c2)
+        SSIM_n = (2 * mu_x * mu_y + c1) * (2 * sigma_xy + c2)
         SSIM_d = (mu_x ** 2 + mu_y ** 2 + c1) * (sigma_x + sigma_y + c2)
 
         SSIM = SSIM_n / SSIM_d
