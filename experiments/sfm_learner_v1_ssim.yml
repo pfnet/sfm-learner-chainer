@@ -1,6 +1,6 @@
-end_trigger: [200000, "iteration"]
-results: results/depth
-gpus: [0]
+end_trigger: [20, "epoch"]
+results: results/ssim_015_sm01_lr1
+gpus: [2]
 mode: Train
 seed: 1
 
@@ -51,7 +51,7 @@ iterator:
 optimizer:
   name: Adam
   args:
-    alpha: 0.0002
+    alpha: 0.0001
     beta1: 0.9
     beta2: 0.999
   hook:
@@ -61,12 +61,10 @@ extension:
   #Evaluator:
   #  name: Evaluator
   #  trigger: [1, 'epoch']
-  snapshot:
-      trigger: [200000, "iteration"]
   snapshot_object:
       trigger: [5000, "iteration"]
   LogReport:
-    trigger: [100, "iteration"]
+    trigger: [1000, "iteration"]
   PrintReport:
     name:
       epoch
@@ -75,7 +73,8 @@ extension:
       main/pixel_loss
       main/smooth_loss
       main/exp_loss
-    trigger: [100, "iteration"]
+      main/ssim_loss
+    trigger: [1000, "iteration"]
   ProgressBar:
       update_interval: 10
   observe_lr:

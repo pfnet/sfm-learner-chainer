@@ -73,11 +73,11 @@ class SFMLearner(chainer.Chain):
 
             # Smoothness regularization
             if self.smooth_reg:
-                # smooth_loss += (self.smooth_reg / (2 ** ns)) * \
-                #                     self.compute_smooth_loss(pred_disps[ns])
                 smooth_loss += (self.smooth_reg / (2 ** ns)) * \
-                                    self.compute_disp_smooth(curr_tgt_img,
-                                                             pred_disps[ns])
+                                    self.compute_smooth_loss(pred_disps[ns])
+                # smooth_loss += (self.smooth_reg / (2 ** ns)) * \
+                #                     self.compute_disp_smooth(curr_tgt_img,
+                #                                              pred_disps[ns])
             curr_pred_depthes = pred_depthes[ns]
             curr_pred_depthes = F.reshape(curr_pred_depthes, (batchsize, 1, -1))
             curr_pred_depthes = F.broadcast_to(curr_pred_depthes,
@@ -112,7 +112,7 @@ class SFMLearner(chainer.Chain):
                     if self.ssim_rate:
                         ssim_error = self.compute_ssim(curr_proj_img, curr_tgt_img)
                         ssim_error *= (1 - mask)
-                        ssim_loss += F.mean(ssim_loss)
+                        ssim_loss += F.mean(ssim_error)
 
         total_loss = (1 - self.ssim_rate) * pixel_loss + self.ssim_rate * ssim_loss + \
                          smooth_loss + exp_loss
@@ -120,25 +120,26 @@ class SFMLearner(chainer.Chain):
         chainer.report({'pixel_loss': pixel_loss}, self)
         chainer.report({'smooth_loss': smooth_loss}, self)
         chainer.report({'exp_loss': exp_loss}, self)
+        chainer.report({'ssim_loss': ssim_loss}, self)
         return total_loss
 
     def compute_ssim(self, x, y):
         c1 = 0.01 ** 2
         c2 = 0.03 ** 2
 
-        mu_x = F.avg_pooling_2d(x, 3, 1, 1)
-        mu_y = F.avg_pooling_2d(y, 3, 1, 1)
+        mu_x = F.average_pooling_2d(x, 3, 1, 1)
+        mu_y = F.average_pooling_2d(y, 3, 1, 1).data
 
-        sigma_x = F.avg_pooling_2d(x ** 2, 3, 1, 1) - mu_x ** 2
-        sigma_y = F.avg_pooling_2d(y ** 2, 3, 1, 1) - mu_y ** 2
-        sigma_xy = F.avg_pooling_2d(x * y, 3, 1, 1) - mu_x * mu_y
+        sigma_x = F.average_pooling_2d(x ** 2, 3, 1, 1) - mu_x ** 2
+        sigma_y = F.average_pooling_2d(y ** 2, 3, 1, 1).data - mu_y ** 2
+        sigma_xy = F.average_pooling_2d(x * y, 3, 1, 1) - mu_x * mu_y
 
         SSIM_n = (2 * mu_x * mu_y * c1) * (2 * sigma_xy + c2)
         SSIM_d = (mu_x ** 2 + mu_y ** 2 + c1) * (sigma_x + sigma_y + c2)
 
         SSIM = SSIM_n / SSIM_d
 
-        return F.clip((1 - SSIM) / 2, 0, 1)
+        return F.clip((1 - SSIM) / 2, 0., 1.)
 
     def compute_disp_smooth(self, img, pred_disp):
         def gradient(input_img):
@@ -147,9 +148,11 @@ class SFMLearner(chainer.Chain):
             return D_dx, D_dy
 
         i_dx, i_dy = gradient(img)
+        i_dx = F.mean(i_dx, axis=1, keepdims=True)
+        i_dy = F.mean(i_dy, axis=1, keepdims=True)
         d_dx, d_dy = gradient(pred_disp)
-        return F.mean(F.absolute(d_dx) * F.exp(-F.absolute(i_dx)) \
-                      + F.absolute(d_dy) * F.exp(-F.absolute(i_dy)))
+        return F.mean(F.absolute(d_dx) * F.exp(-F.absolute(i_dx))) \
+                      + F.mean(F.absolute(d_dy) * F.exp(-F.absolute(i_dy)))
 
     def compute_exp_reg_loss(self, pred):
         """Compute expalanation loss.
