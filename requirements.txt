@@ -4,6 +4,6 @@ cupy==4.0.0b1
 Cython==0.23.4
 matplotlib==1.5.1
 numpy==1.13.3
-opencv-python==3.2.0.8
+opencv-python==4.2.0.32
 pandas==0.20.3
 pep8==1.7.0
